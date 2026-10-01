@@ -2,28 +2,44 @@
 
 Plataforma técnica profesional para el registro y análisis estadístico post-partido de **Club SOMISA** (San Nicolás de los Arroyos, Buenos Aires, Argentina - Liga Federal de Básquet).
 
-Diseñada con los colores institucionales del club (**Azul Pantone 281 C `#00205B`**, gris técnico y blanco) y con **modo oscuro** para lectura nocturna.
+---
+
+## 🚀 Cómo Solucionar la Pantalla Blanca con "Deploy from a branch"
+
+### ¿Por qué salía la pantalla en blanco?
+Al seleccionar en GitHub Pages la opción **"Deploy from a branch"** con la rama `main`, GitHub intenta servir directamente los archivos fuente (`index.html` que apunta a `src/main.tsx`). Como ningún navegador puede ejecutar TypeScript ni JSX sin compilar, la pantalla queda totalmente en blanco.
+
+Para usar **Deploy from a branch**, GitHub Pages debe servir la rama compilada: **`gh-pages`**.
 
 ---
 
-## 🌐 Cómo Ver la Aplicación en Vivo en GitHub Pages
+### Pasos para que funcione al 100% (con "Deploy from a branch"):
 
-Esta aplicación está 100% preparada para funcionar en **GitHub Pages** de forma gratuita y automática:
+#### Método 1: Automático con GitHub (Recomendado)
+1. Sube los cambios a tu repositorio:
+   ```bash
+   git add .
+   git commit -m "Configurar despliegue a gh-pages"
+   git push origin main
+   ```
+2. El archivo `.github/workflows/deploy.yml` compilará la app automáticamente y creará la rama **`gh-pages`**.
+3. En GitHub, ve a **Settings** > **Pages**:
+   - **Source**: `Deploy from a branch`
+   - **Branch**: Selecciona 👉 **`gh-pages`** (carpeta: `/ (root)`)
+   - Clic en **Save**.
+4. ¡Listo! Espera unos segundos y abre tu URL:
+   `https://<tu-usuario>.github.io/<tu-repo>/`
 
-### Paso a Paso para Activar GitHub Pages:
-1. Sube este repositorio a tu cuenta de GitHub (`git push origin main`).
-2. En la página de tu repositorio en GitHub, ve a la pestaña **Settings** (Configuración).
-3. En el menú lateral izquierdo, haz clic en **Pages**.
-4. En la sección **Build and deployment** > **Source**, selecciona:
-   👉 **`GitHub Actions`**
-5. ¡Listo! El flujo de trabajo `.github/workflows/deploy.yml` compilará la app automáticamente y te dará el enlace público:
-   `https://<tu-usuario>.github.io/<nombre-del-repo>/`
+#### Método 2: Despliegue Directo desde tu Terminal
+También puedes desplegar directamente con un solo comando:
+```bash
+npm run deploy
+```
+*(Este comando compila la app y sube la carpeta `dist` directamente a la rama `gh-pages` de tu GitHub).*
 
 ---
 
 ## 💻 Ejecución Local en tu Computadora
-
-Si quieres ejecutar la aplicación en tu máquina local:
 
 ```bash
 # 1. Clonar el repositorio
@@ -32,56 +48,23 @@ git clone https://github.com/<tu-usuario>/<nombre-del-repo>.git
 # 2. Ingresar a la carpeta
 cd <nombre-del-repo>
 
-# 3. Instalar las dependencias
+# 3. Instalar dependencias
 npm install
 
-# 4. Iniciar el servidor de desarrollo
+# 4. Iniciar servidor de desarrollo
 npm run dev
 ```
-
 Abre tu navegador en `http://localhost:3000`.
 
 ---
 
-## 📊 Características Principales
+## 📊 Características de la Plataforma
 
-1. **Carga Tipo Planilla Técnica Oficial**:
-   - Estructura idéntica a planilla técnica de básquetbol con doble columna para dobles (TC/TI), triples (3PC/3PI) y libres (TLC/TLI).
-   - Cálculo en tiempo real de porcentajes automáticos: `Ti%`, `3P%`, `3PAr` (en rojo), `TL%`, `FTr`, `eFG%`, `TS%`, `ToV%` (en verde), rebotes (`RD`, `RO`, `RT`), asistencias, robos, pérdidas, tapones y valoración FIBA (`Pts Tot`).
-   - Función para **pegar directamente desde Excel o Google Sheets** con `Ctrl + V`.
-
-2. **Gestión de Plantilla y Dorsales (#)**:
-   - Administrador de plantilla oficial con nombres, apellidos, dorsales (#) y posiciones (Base, Escolta, Alero, Ala-Pívot, Pívot).
-   - Botón de sincronización automática de dorsales para todos los partidos de la temporada.
-
-3. **Mapa de Tiro Interactivo y Zonas de Calor**:
-   - Media cancha reglamentaria con detección de coordenadas ($X, Y$) y zona de tiro.
-   - Modo de dispersión (scatter) de tiros convertidos y fallados, y mapa de calor por zonas de tiro.
-   - Filtros por jugador y efectividad.
-
-4. **Resumen de Equipo y Jugador**:
-   - Seguimiento de los 4 factores de Dean Oliver (*Tiro Efectivo eFG%*, *Tasa de Pérdidas ToV%*, *Rebote Ofensivo ORB%* y *Tasa de Libres FTr*).
-   - Fichas individuales acumuladas por jugador, promedios por partido (PPG, RPG, APG, SPG, BPG, Valoración) y desglose fecha por fecha.
-
-5. **Alta y Eliminación de Partidos**:
-   - Botón **"Dar de Alta Partido"**: crea un nuevo encuentro contra cualquier rival precargando la plantilla de Club SOMISA.
-   - Botón **"Eliminar Partido"**: confirmación segura con modal preventivo.
-
-6. **Exportación Automática en 1 Clic**:
-   - **Reporte Oficial en PDF**: Formato A4 apaisado con diseño profesional de Club SOMISA, planilla técnica completa, porcentajes y desglose de tiros.
-   - **Planilla en CSV**: Compatible directamente con Excel y Google Sheets.
-   - **Respaldo JSON**: Descarga y restauración completa de la base de datos de la temporada.
-
----
-
-## 🛠️ Tecnologías Utilizadas
-
-- **React 19** + **TypeScript**
-- **Vite 6/8** con rutas relativas (`base: './'`) para compatibilidad universal en GitHub Pages
-- **Tailwind CSS v4** (Paleta Pantone 281 C)
-- **jsPDF** para la generación de reportes en PDF descargables
-- **Lucide Icons**
-- **LocalStorage API** para persistencia total y autónoma sin necesidad de backend externo
+- **Planilla Oficial de Partido**: Registro exacto según planilla técnica de básquetbol con cálculos automáticos de porcentajes (`Ti%`, `3P%`, `3PAr`, `TL%`, `FTr`, `eFG%`, `TS%`, `ToV%`, `RT`, `Pt`, `Pts Tot`).
+- **Dorsales y Plantilla Oficial de Club SOMISA**: Asignación de camiseta `#`, nombres y posiciones con sincronización a todos los partidos.
+- **Mapa de Tiro y Zonas de Calor**: Coordenadas visuales de tiros convertidos y fallados con mapa de calor por zonas.
+- **Resúmenes Automáticos**: Indicadores de equipo (4 factores) y estadísticas acumuladas por jugador.
+- **Exportaciones**: Reportes listos para imprimir o compartir en PDF y CSV.
 
 ---
 

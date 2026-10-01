@@ -173,17 +173,20 @@ git push origin main`;
           <div className="p-4 rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/30 border border-blue-200 dark:border-blue-800 space-y-2.5 text-xs">
             <div className="flex items-center gap-2 text-[#00205B] dark:text-[#93C5FD] font-bold">
               <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-              <span>¿Cómo ver la página publicada online en GitHub Pages? (100% Gratis)</span>
+              <span>Solución a la Pantalla Blanca en "Deploy from a branch"</span>
             </div>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px]">
-              El proyecto ya tiene configurado el archivo <code>.github/workflows/deploy.yml</code> y rutas relativas (<code>base: './'</code>) para que cualquier persona pueda abrir tu web desde su celular o computadora sin instalar nada:
-            </p>
+            <div className="text-slate-700 dark:text-slate-300 leading-relaxed text-[11px] space-y-1">
+              <p>
+                <strong>¿Por qué salía blanco?</strong> Si seleccionas la rama <code>main</code>, GitHub Pages intenta cargar los archivos en código TypeScript crudo (sin compilar). Para que se vea correctamente con <strong>Deploy from a branch</strong>, debe apuntar a la rama compilada <code>gh-pages</code>:
+              </p>
+            </div>
             <ol className="list-decimal list-inside space-y-1.5 text-slate-800 dark:text-slate-200 text-[11px] font-medium bg-white/70 dark:bg-slate-900/60 p-3 rounded-lg border border-blue-100 dark:border-blue-900/60">
-              <li>Sube el proyecto a tu repositorio de GitHub (con los comandos de abajo).</li>
-              <li>En GitHub, haz clic en la pestaña <strong>Settings</strong> (Configuración del repositorio).</li>
-              <li>En la barra lateral izquierda, entra en <strong>Pages</strong>.</li>
-              <li>En <strong>Build and deployment &gt; Source</strong>, selecciona: <strong>GitHub Actions</strong>.</li>
-              <li>¡Listo! En unos segundos tendrás tu enlace público: <span className="font-mono text-blue-700 dark:text-blue-300 font-bold">https://tu-usuario.github.io/tu-repo/</span></li>
+              <li>Haz <code>git push</code> de tus cambios (o ejecuta <code>npm run deploy</code>).</li>
+              <li>El sistema compilará la web y creará la rama <strong>gh-pages</strong>.</li>
+              <li>En GitHub ve a <strong>Settings</strong> &gt; <strong>Pages</strong>.</li>
+              <li>En <strong>Source</strong>: deja <strong>Deploy from a branch</strong>.</li>
+              <li>En <strong>Branch</strong>: selecciona 👉 <strong>gh-pages</strong> (y carpeta <code>/ (root)</code>).</li>
+              <li>Haz clic en <strong>Save</strong>. ¡En 30 segundos tu página se verá completa sin pantalla blanca!</li>
             </ol>
           </div>
 
