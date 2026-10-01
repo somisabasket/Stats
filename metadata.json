@@ -1,0 +1,6 @@
+{
+  "name": "HoopAnalytics Pro - Estadísticas de Baloncesto y Mapa de Tiro",
+  "description": "Plataforma profesional de estadísticas de baloncesto con registro tipo grilla, mapa de tiro interactivo, analítica avanzada FIBA/NBA, mapas de calor y exportación automática a PDF y CSV.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
