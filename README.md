@@ -22,7 +22,7 @@ Para usar **Deploy from a branch**, GitHub Pages debe servir la rama compilada: 
    git commit -m "Configurar despliegue a gh-pages"
    git push origin main
    ```
-2. El archivo `.github/workflows/deploy.yml` compilará la app automáticamente y creará la rama **`gh-pages`**.
+2. El archivo `.github/workflows/static.yml` compilará la app automáticamente y creará la rama **`gh-pages`**.
 3. En GitHub, ve a **Settings** > **Pages**:
    - **Source**: `Deploy from a branch`
    - **Branch**: Selecciona 👉 **`gh-pages`** (carpeta: `/ (root)`)
