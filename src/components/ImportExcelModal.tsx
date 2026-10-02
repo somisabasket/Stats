@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { Game, PlayerProfile } from '../types/basketball';
 import { parseExcelFile, parseExcelClipboardText, ParsedExcelGame } from '../utils/excelImport';
+import { ClubSomisaLogo } from './ClubSomisaLogo';
 
 interface ImportExcelModalProps {
   isOpen: boolean;
@@ -180,9 +181,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[#00205B] dark:bg-[#0A327E] text-white shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/10 flex items-center justify-center shadow-inner">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-            </div>
+            <ClubSomisaLogo size={36} className="bg-white/10 p-0.5 rounded-full" />
             <div>
               <h3 className="text-base font-bold flex items-center gap-2">
                 Importar Estadísticas desde Excel
@@ -197,7 +196,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors"
+            className="p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>

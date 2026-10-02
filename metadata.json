@@ -1,0 +1,6 @@
+{
+  "name": "Club SOMISA - Estadísticas de Básquet",
+  "description": "Sistema avanzado de estadísticas de básquetbol, planilla oficial CABB/FBB, mapa de tiro y reportes para Club SOMISA San Nicolás.",
+  "permissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
