@@ -32,7 +32,7 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm ci
+        run: npm ci || npm install
 
       - name: Compilar aplicación (Vite Build)
         run: npm run build
