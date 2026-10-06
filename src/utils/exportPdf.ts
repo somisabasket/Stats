@@ -19,9 +19,9 @@ function loadCrestImage(): Promise<HTMLImageElement | null> {
       const fallback = new Image();
       fallback.onload = () => resolve(fallback);
       fallback.onerror = () => resolve(null);
-      fallback.src = '/somisa_crest.jpg';
+      fallback.src = './somisa_crest.jpg';
     };
-    img.src = '/somisa_crest.jpg';
+    img.src = './somisa_crest.jpg';
   });
 }
 

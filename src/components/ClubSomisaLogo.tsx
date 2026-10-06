@@ -12,13 +12,13 @@ export const ClubSomisaLogo: React.FC<ClubSomisaLogoProps> = ({
   className = '',
   showBorder = true 
 }) => {
-  const [imgSrc, setImgSrc] = useState<string>(somisaCrestImg || '/somisa_crest.jpg');
+  const [imgSrc, setImgSrc] = useState<string>(somisaCrestImg || './somisa_crest.jpg');
   const [hasFailed, setHasFailed] = useState(false);
 
   const handleError = () => {
-    if (imgSrc !== '/somisa_crest.jpg') {
+    if (imgSrc !== './somisa_crest.jpg') {
       // Fallback to static public crest file
-      setImgSrc('/somisa_crest.jpg');
+      setImgSrc('./somisa_crest.jpg');
     } else {
       setHasFailed(true);
     }
