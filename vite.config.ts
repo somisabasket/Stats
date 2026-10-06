@@ -64,9 +64,12 @@ function githubPagesMultiTargetPlugin() {
           }
         }
 
-        // 3. Copiar somisa_crest.jpg y .nojekyll a la raíz para que funcionen en main /(root)
+        // 3. Copiar somisa_crest.jpg, somisa_data.json y .nojekyll a la raíz para que funcionen en main /(root)
         if (fs.existsSync(path.join(rootDir, 'public', 'somisa_crest.jpg'))) {
           fs.copyFileSync(path.join(rootDir, 'public', 'somisa_crest.jpg'), path.join(rootDir, 'somisa_crest.jpg'));
+        }
+        if (fs.existsSync(path.join(rootDir, 'public', 'somisa_data.json'))) {
+          fs.copyFileSync(path.join(rootDir, 'public', 'somisa_data.json'), path.join(rootDir, 'somisa_data.json'));
         }
         fs.writeFileSync(path.join(rootDir, '.nojekyll'), '', 'utf-8');
       } catch (err) {

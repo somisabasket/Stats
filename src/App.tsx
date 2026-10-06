@@ -7,6 +7,10 @@ import {
   saveMasterRoster,
   getDarkModePreference,
   saveDarkModePreference,
+  fetchRemoteSharedData,
+  mergeGamesList,
+  loadGitHubSyncConfig,
+  pushDataToGitHubRepo,
 } from './utils/storage';
 import { calculateRowMetrics } from './utils/calculations';
 import { Header, ActiveTab } from './components/Header';
@@ -54,6 +58,35 @@ export default function App() {
       saveMasterRoster(roster);
     }
   }, [roster]);
+
+  // Al abrir la app en cualquier navegador, consultar ./somisa_data.json del repositorio GitHub
+  // para incorporar automáticamente los partidos publicados desde otros navegadores/dispositivos.
+  useEffect(() => {
+    let mounted = true;
+    fetchRemoteSharedData().then((remote) => {
+      if (!mounted || !remote) return;
+      if (remote.games && remote.games.length > 0) {
+        setGames((prevLocal) => {
+          const merged = mergeGamesList(prevLocal, remote.games!);
+          saveGames(merged);
+          return merged;
+        });
+      }
+      if (remote.roster && remote.roster.length > 0) {
+        setRoster(remote.roster);
+      }
+    });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const triggerAutoGitHubSync = (updatedGames: Game[], updatedRoster: PlayerProfile[] = roster) => {
+    const cfg = loadGitHubSyncConfig();
+    if (cfg.autoSync && cfg.owner && cfg.repo && cfg.token) {
+      pushDataToGitHubRepo(cfg, updatedGames, updatedRoster).catch(() => {});
+    }
+  };
 
   const currentGame = games.find((g) => g.id === currentGameId) || games[0];
 
@@ -112,7 +145,11 @@ export default function App() {
 
   // Create game
   const handleCreateGame = (newGame: Game) => {
-    setGames((prev) => [newGame, ...prev]);
+    setGames((prev) => {
+      const next = [newGame, ...prev];
+      triggerAutoGitHubSync(next);
+      return next;
+    });
     setCurrentGameId(newGame.id);
     setActiveTab('grid');
   };
@@ -228,7 +265,11 @@ export default function App() {
       shots: [],
     };
 
-    setGames((prev) => [newGame, ...prev]);
+    setGames((prev) => {
+      const next = [newGame, ...prev];
+      triggerAutoGitHubSync(next);
+      return next;
+    });
     setCurrentGameId(newGame.id);
     setActiveTab('grid');
   };

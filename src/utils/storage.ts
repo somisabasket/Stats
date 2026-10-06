@@ -1,9 +1,219 @@
-import { Game, ExcelRowStats, Shot, PlayerProfile } from '../types/basketball';
+import { Game, ExcelRowStats,PlayerProfile } from '../types/basketball';
 import { calculateRowMetrics } from './calculations';
 
 const STORAGE_KEY = 'somisa_stats_data_v4';
 const ROSTER_KEY = 'somisa_master_roster_v1';
 const DARK_MODE_KEY = 'somisa_dark_mode';
+const GITHUB_SYNC_CONFIG_KEY = 'somisa_github_sync_config_v1';
+
+export interface GitHubSyncConfig {
+  owner: string;
+  repo: string;
+  branch: string;
+  token: string;
+  autoSync: boolean;
+  lastSyncedAt?: string;
+}
+
+export function loadGitHubSyncConfig(): GitHubSyncConfig {
+  try {
+    const raw = localStorage.getItem(GITHUB_SYNC_CONFIG_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        owner: parsed.owner || '',
+        repo: parsed.repo || '',
+        branch: parsed.branch || 'main',
+        token: parsed.token || '',
+        autoSync: Boolean(parsed.autoSync),
+        lastSyncedAt: parsed.lastSyncedAt
+      };
+    }
+  } catch {
+    // ignore
+  }
+  // Auto-detect owner and repo if hosted on *.github.io
+  let detectedOwner = '';
+  let detectedRepo = '';
+  if (typeof window !== 'undefined' && window.location.hostname.endsWith('.github.io')) {
+    detectedOwner = window.location.hostname.replace('.github.io', '');
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    if (pathParts.length > 0) {
+      detectedRepo = pathParts[0];
+    }
+  }
+  return {
+    owner: detectedOwner,
+    repo: detectedRepo,
+    branch: 'main',
+    token: '',
+    autoSync: false
+  };
+}
+
+export function saveGitHubSyncConfig(config: GitHubSyncConfig): void {
+  try {
+    localStorage.setItem(GITHUB_SYNC_CONFIG_KEY, JSON.stringify(config));
+  } catch (err) {
+    console.error('Failed to save GitHub sync config:', err);
+  }
+}
+
+/**
+ * Fetches shared games & roster from ./somisa_data.json (hosted on GitHub Pages or repo)
+ * and merges with local games so any browser opening the GitHub URL gets all published matches.
+ */
+export async function fetchRemoteSharedData(): Promise<{ games?: Game[]; roster?: PlayerProfile[]; updatedAt?: string } | null> {
+  try {
+    const cacheBuster = `?t=${Date.now()}`;
+    const res = await fetch(`./somisa_data.json${cacheBuster}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data && Array.isArray(data.games)) {
+      return {
+        games: data.games,
+        roster: Array.isArray(data.roster) ? data.roster : undefined,
+        updatedAt: data.exportDate
+      };
+    }
+  } catch {
+    // Offline or not available
+  }
+  return null;
+}
+
+/**
+ * Merges remote games and local games by ID so neither is lost, keeping the newest or remote version
+ */
+export function mergeGamesList(localGames: Game[], remoteGames: Game[]): Game[] {
+  if (!remoteGames || remoteGames.length === 0) return localGames;
+  const map = new Map<string, Game>();
+  // First add remote games
+  remoteGames.forEach(g => {
+    if (g && g.id) map.set(g.id, g);
+  });
+  // Then add any local games (if local has more recent changes or additional games)
+  localGames.forEach(g => {
+    if (g && g.id && !map.has(g.id)) {
+      map.set(g.id, g);
+    }
+  });
+  return Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+/**
+ * Pushes the current games & roster directly to the GitHub repository via GitHub REST API
+ * Updating public/somisa_data.json, docs/somisa_data.json and somisa_data.json so all browsers see it immediately.
+ */
+export async function pushDataToGitHubRepo(
+  config: GitHubSyncConfig,
+  games: Game[],
+  roster: PlayerProfile[]
+): Promise<{ ok: boolean; message: string }> {
+  const { owner, repo, branch, token } = config;
+  if (!owner.trim() || !repo.trim() || !token.trim()) {
+    return {
+      ok: false,
+      message: 'Completa el Usuario de GitHub, Nombre del Repositorio y tu Token (PAT) para sincronizar directamente.'
+    };
+  }
+
+  const payload = {
+    appName: 'Club SOMISA Básquetbol',
+    version: '4.0.0',
+    exportDate: new Date().toISOString(),
+    totalGames: games.length,
+    roster,
+    games
+  };
+
+  const jsonContent = JSON.stringify(payload, null, 2);
+  // Encode UTF-8 string to Base64
+  const base64Content = btoa(unescape(encodeURIComponent(jsonContent)));
+  const targetPaths = ['public/somisa_data.json', 'somisa_data.json', 'docs/somisa_data.json'];
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    Authorization: `Bearer ${token.trim()}`,
+    'Content-Type': 'application/json'
+  };
+
+  let updatedCount = 0;
+  let lastError = '';
+
+  for (const filePath of targetPaths) {
+    try {
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner.trim())}/${encodeURIComponent(repo.trim())}/contents/${filePath}`;
+      // 1. Check if file already exists to get its SHA
+      let sha: string | undefined;
+      const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch.trim() || 'main')}`, {
+        method: 'GET',
+        headers
+      });
+      if (getRes.ok) {
+        const existing = await getRes.json();
+        sha = existing.sha;
+      }
+
+      // 2. PUT updated file content
+      const putBody: Record<string, any> = {
+        message: `Actualizar partidos Club SOMISA (${games.length} partidos)`,
+        content: base64Content,
+        branch: branch.trim() || 'main'
+      };
+      if (sha) {
+        putBody.sha = sha;
+      }
+
+      const putRes = await fetch(apiUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(putBody)
+      });
+
+      if (putRes.ok) {
+        updatedCount++;
+      } else {
+        const errData = await putRes.json().catch(() => ({}));
+        lastError = errData.message || `HTTP ${putRes.status}`;
+      }
+    } catch (err: any) {
+      lastError = err?.message || 'Error de red';
+    }
+  }
+
+  // Also try updating gh-pages branch if it exists so sites deployed from gh-pages update immediately without waiting for Actions
+  try {
+    const ghPagesUrl = `https://api.github.com/repos/${encodeURIComponent(owner.trim())}/${encodeURIComponent(repo.trim())}/contents/somisa_data.json`;
+    const getGh = await fetch(`${ghPagesUrl}?ref=gh-pages`, { method: 'GET', headers });
+    if (getGh.ok) {
+      const existingGh = await getGh.json();
+      await fetch(ghPagesUrl, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({
+          message: `Sync partidos Club SOMISA en gh-pages (${games.length} partidos)`,
+          content: base64Content,
+          branch: 'gh-pages',
+          sha: existingGh.sha
+        })
+      });
+    }
+  } catch {
+    // gh-pages branch might not exist, ignore
+  }
+
+  if (updatedCount > 0) {
+    return {
+      ok: true,
+      message: `¡Sincronizado en GitHub con éxito! (${games.length} partidos publicados para todos los navegadores).`
+    };
+  }
+
+  return {
+    ok: false,
+    message: `No se pudo subir a GitHub: ${lastError || 'Verifica el nombre del repositorio y permisos del Token (repo / contents:write).'}`
+  };
+}
 
 export const DEFAULT_SOMISA_ROSTER: PlayerProfile[] = [
   { id: 'som_p1', name: 'PAEZ, FELIPE', number: 1, position: 'Base', isCaptain: false, active: true },
@@ -13,7 +223,7 @@ export const DEFAULT_SOMISA_ROSTER: PlayerProfile[] = [
   { id: 'som_p5', name: 'DIAZ, JAIME', number: 7, position: 'Escolta', isCaptain: false, active: true },
   { id: 'som_p6', name: 'BUALO, AGUSTIN', number: 8, position: 'Base', isCaptain: false, active: true },
   { id: 'som_p7', name: 'BROVARONE, FAUSTINO', number: 9, position: 'Escolta', isCaptain: false, active: true },
-  { id: 'som_p8', name: 'VITANGELI, SANTINO', number: 10, position: 'Base', isCaptain: false, active: true },
+  { id: 'som_p8', name: 'VITANGELI, SANTINO', number: 10, "position": 'Base', isCaptain: false, active: true },
   { id: 'som_p9', name: 'RATTERO, RAMIRO', number: 11, position: 'Ala-Pívot', isCaptain: false, active: true },
   { id: 'som_p10', name: 'URANGA, SEBASTIAN', number: 12, position: 'Pívot', isCaptain: true, active: true },
   { id: 'som_p11', name: 'MASCAZZINI, ALEJO BENJAMIN', number: 20, position: 'Alero', isCaptain: false, active: true },
@@ -139,7 +349,7 @@ export function getDarkModePreference(): boolean {
   } catch {
     // fallback
   }
-  return true; // Dark mode default for elite sports UI
+  return true;
 }
 
 export function saveDarkModePreference(isDark: boolean): void {

@@ -1,0 +1,21 @@
+{
+  "appName": "Club SOMISA Básquetbol",
+  "version": "4.0.0",
+  "exportDate": "2026-03-28T22:00:00.000Z",
+  "totalGames": 1,
+  "roster": [
+    { "id": "som_p1", "name": "PAEZ, FELIPE", "number": 1, "position": "Base", "isCaptain": false, "active": true },
+    { "id": "som_p2", "name": "PEDEMONTE, JUAN PABLO", "number": 2, "position": "Alero", "isCaptain": false, "active": true },
+    { "id": "som_p3", "name": "ZACCHERINI ROMERO, FABRICIO MATIAS", "number": 4, "position": "Escolta", "isCaptain": false, "active": true },
+    { "id": "som_p4", "name": "GONZALEZ ROVEDA, LUCIO", "number": 5, "position": "Alero", "isCaptain": false, "active": true },
+    { "id": "som_p5", "name": "DIAZ, JAIME", "number": 7, "position": "Escolta", "isCaptain": false, "active": true },
+    { "id": "som_p6", "name": "BUALO, AGUSTIN", "number": 8, "position": "Base", "isCaptain": false, "active": true },
+    { "id": "som_p7", "name": "BROVARONE, FAUSTINO", "number": 9, "position": "Escolta", "isCaptain": false, "active": true },
+    { "id": "som_p8", "name": "VITANGELI, SANTINO", "number": 10, "position": "Base", "isCaptain": false, "active": true },
+    { "id": "som_p9", "name": "RATTERO, RAMIRO", "number": 11, "position": "Ala-Pívot", "isCaptain": false, "active": true },
+    { "id": "som_p10", "name": "URANGA, SEBASTIAN", "number": 12, "position": "Pívot", "isCaptain": true, "active": true },
+    { "id": "som_p11", "name": "MASCAZZINI, ALEJO BENJAMIN", "number": 20, "position": "Alero", "isCaptain": false, "active": true },
+    { "id": "som_p12", "name": "ANDOLLO, SEBASTIAN", "number": 33, "position": "Pívot", "isCaptain": false, "active": true }
+  ],
+  "games": []
+}
