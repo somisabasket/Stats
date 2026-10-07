@@ -188,47 +188,6 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Barra Rápida de Partidos Cargados (Selector Visual de todos los encuentros) */}
-      <div className="bg-white dark:bg-[#0E1526] px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 rounded-lg bg-[#00205B] text-white text-[11px] font-extrabold uppercase tracking-wider">
-            {allGames.length} Partidos en Temporada
-          </span>
-          <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">
-            Haz clic en un rival para cambiar de planilla:
-          </span>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5 flex-1 justify-end">
-          {allGames.map((g) => {
-            const isSelected = g.id === game.id;
-            const isWin = g.scoreMyTeam > g.scoreOpponent;
-            return (
-              <button
-                key={g.id}
-                onClick={() => onSelectGame && onSelectGame(g.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border ${
-                  isSelected
-                    ? 'bg-[#00205B] text-white border-[#00205B] dark:bg-[#0A327E] dark:border-blue-400 shadow-sm scale-[1.02]'
-                    : 'bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <span>vs {g.opponentName}</span>
-                <span className={`font-mono text-[11px] px-1.5 py-0.2 rounded ${
-                  isSelected
-                    ? 'bg-white/20 text-white'
-                    : isWin
-                    ? 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
-                    : 'bg-red-100 dark:bg-red-950/70 text-red-700 dark:text-red-300'
-                }`}>
-                  {g.scoreMyTeam}-{g.scoreOpponent}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Post-Game Match Header Card with Switcher and Actions */}
       <div className="bg-white dark:bg-[#0E1526] p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         <div className="flex flex-wrap items-center justify-between gap-4">
