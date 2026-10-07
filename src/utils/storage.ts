@@ -2,8 +2,8 @@ import { Game, ExcelRowStats, PlayerProfile } from '../types/basketball';
 import { calculateRowMetrics } from './calculations';
 import bundledSharedData from '../../public/somisa_data.json';
 
-const STORAGE_KEY = 'somisa_stats_data_v4';
-const ROSTER_KEY = 'somisa_master_roster_v1';
+const STORAGE_KEY = 'somisa_stats_data_v5_all_matches';
+const ROSTER_KEY = 'somisa_master_roster_v2';
 const DARK_MODE_KEY = 'somisa_dark_mode';
 const GITHUB_SYNC_CONFIG_KEY = 'somisa_github_sync_config_v1';
 
@@ -65,10 +65,21 @@ export function saveGitHubSyncConfig(config: GitHubSyncConfig): void {
  * and merges with local games so any browser opening the GitHub URL gets all published matches.
  */
 export async function fetchRemoteSharedData(): Promise<{ games?: Game[]; roster?: PlayerProfile[]; updatedAt?: string } | null> {
-  const urlsToTry = [
+  const cfg = loadGitHubSyncConfig();
+  const urlsToTry: string[] = [
     `./somisa_data.json?t=${Date.now()}`,
     `./public/somisa_data.json?t=${Date.now()}`
   ];
+
+  // Si estamos en GitHub Pages o tenemos owner/repo configurados, consultar también raw.githubusercontent.com
+  // para obtener al instante el último public/somisa_data.json sin esperar el caché de CDN de GitHub Pages
+  if (cfg.owner && cfg.repo) {
+    const branch = cfg.branch || 'main';
+    urlsToTry.unshift(
+      `https://raw.githubusercontent.com/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/${encodeURIComponent(branch)}/public/somisa_data.json?t=${Date.now()}`,
+      `https://raw.githubusercontent.com/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/${encodeURIComponent(branch)}/somisa_data.json?t=${Date.now()}`
+    );
+  }
 
   for (const url of urlsToTry) {
     try {
@@ -360,17 +371,22 @@ export function getInitialGames(): Game[] {
 export function loadSavedGames(): Game[] {
   const initialBundled = getInitialGames();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        // Siempre fusionar los partidos de localStorage con los partidos oficiales empaquetados en somisa_data.json
-        // para que ninguna PC se quede solo con 1 partido viejo en caché.
-        const merged = mergeGamesList(parsed, initialBundled);
-        saveGames(merged);
-        return merged;
-      }
+    const rawCurrent = localStorage.getItem(STORAGE_KEY);
+    const rawLegacy = localStorage.getItem('somisa_stats_data_v4');
+    let localList: Game[] = [];
+
+    if (rawCurrent) {
+      const parsed = JSON.parse(rawCurrent);
+      if (Array.isArray(parsed)) localList = [...localList, ...parsed];
     }
+    if (rawLegacy) {
+      const parsedLegacy = JSON.parse(rawLegacy);
+      if (Array.isArray(parsedLegacy)) localList = [...localList, ...parsedLegacy];
+    }
+
+    const merged = mergeGamesList(localList, initialBundled);
+    saveGames(merged);
+    return merged;
   } catch (err) {
     console.error('Failed to load games from localStorage:', err);
   }
