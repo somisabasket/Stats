@@ -295,6 +295,53 @@ export default function App() {
         currentGameTitle={currentGame.title}
       />
 
+      {/* BARRA DESTACADA GLOBAL DE PARTIDOS CARGADOS (Visible en todas las vistas) */}
+      <div className="w-full bg-[#001845] dark:bg-[#0B132B] border-b border-blue-900/60 dark:border-slate-800 text-white shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-lg bg-amber-400 text-[#00205B] text-[11px] font-black uppercase tracking-wider shadow-xs">
+              {games.length} Partidos en Temporada
+            </span>
+            <span className="text-xs text-blue-200 font-medium hidden md:inline">
+              Selecciona un encuentro activo:
+            </span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 flex-1 justify-end overflow-x-auto">
+            {games.map((g) => {
+              const isSelected = g.id === currentGame.id;
+              const isWin = g.scoreMyTeam > g.scoreOpponent;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setCurrentGameId(g.id)}
+                  className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 border whitespace-nowrap ${
+                    isSelected
+                      ? 'bg-white text-[#00205B] border-white shadow-sm scale-[1.02]'
+                      : 'bg-white/10 text-blue-100 border-white/15 hover:bg-white/20'
+                  }`}
+                >
+                  <span>vs {g.opponentName}</span>
+                  <span
+                    className={`font-mono text-[11px] px-1.5 py-0.5 rounded font-extrabold ${
+                      isSelected
+                        ? isWin
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-rose-100 text-rose-800'
+                        : isWin
+                        ? 'bg-emerald-500/30 text-emerald-200'
+                        : 'bg-rose-500/30 text-rose-200'
+                    }`}
+                  >
+                    {g.scoreMyTeam}-{g.scoreOpponent}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* Main Viewport Content Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
         

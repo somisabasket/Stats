@@ -348,12 +348,14 @@ export const GitHubExportModal: React.FC<GitHubExportModalProps> = ({
             <div className="space-y-4">
               <div className="p-4 rounded-xl bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 text-xs text-slate-700 dark:text-slate-300 space-y-2">
                 <p className="font-bold text-amber-900 dark:text-amber-300">
-                  ¿Cómo actualizar el repositorio sin usar Token?
+                  ¿Por qué si subes solo archivos .tsx a mano en GitHub no se ven los cambios visuales (como la barra nueva)?
+                </p>
+                <p className="text-[11px] leading-relaxed">
+                  Los navegadores no leen directamente archivos <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800">.tsx</code> de <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800">src/</code>, sino los archivos ya compilados de la carpeta <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">assets/</code> (y <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">docs/</code>). Si actualizas archivos en tu repositorio:
                 </p>
                 <ol className="list-decimal pl-4 space-y-1 text-[11px]">
-                  <li>Haz clic abajo en <strong>Descargar somisa_data.json</strong>.</li>
-                  <li>Sube ese archivo a la carpeta <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">public/somisa_data.json</code> (y/o raíz) de tu repositorio en GitHub.</li>
-                  <li>¡Listo! Cualquier navegador, celular o PC que abra tu enlace de GitHub cargará automáticamente todos esos partidos.</li>
+                  <li><strong>Para actualizar la interfaz visual:</strong> Usa el botón de sincronización con GitHub de AI Studio, o si subes archivos a mano, asegúrate de subir también la carpeta <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">assets/</code>, <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">index.html</code> y <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">.github/workflows/static.yml</code>.</li>
+                  <li><strong>Para actualizar partidos:</strong> Descarga <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">somisa_data.json</code> aquí abajo y súbelo a <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">public/somisa_data.json</code> (o usa la Opción 1 con 1 clic).</li>
                 </ol>
               </div>
 
