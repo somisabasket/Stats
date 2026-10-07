@@ -2,9 +2,6 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-    <meta http-equiv="Pragma" content="no-cache" />
-    <meta http-equiv="Expires" content="0" />
     <link rel="icon" type="image/jpeg" href="./somisa_crest.jpg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Club SOMISA - Estadísticas de Básquet</title>
@@ -18,16 +15,6 @@
   <body class="antialiased selection:bg-[#00205B] selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Cargador directo para cuando GitHub Pages sirve la raíz de main sin compilar (/src/main.tsx no compila en navegador)
-      (function() {
-        var isStaticHost = window.location.hostname.indexOf('github.io') !== -1 || window.location.protocol === 'file:';
-        if (!isStaticHost) return;
-        var s = document.createElement('script');
-        s.src = './assets/github-loader.js?t=' + Date.now();
-        s.defer = true;
-        document.body.appendChild(s);
-      })();
-    </script>
+    <script src="./assets/github-loader.js" defer></script>
   </body>
 </html>

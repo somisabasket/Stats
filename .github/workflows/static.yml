@@ -20,8 +20,6 @@ jobs:
     steps:
       - name: Checkout del repositorio
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Instalar Node.js
         uses: actions/setup-node@v4
@@ -32,7 +30,7 @@ jobs:
       - name: Instalar dependencias
         run: npm install --legacy-peer-deps || npm install
 
-      - name: Compilar aplicación (Vite Build + Sincronización Multi-Destino)
+      - name: Compilar aplicación (Vite Build)
         run: npm run build
 
       - name: Asegurar archivos .nojekyll y 404.html en dist
@@ -40,18 +38,7 @@ jobs:
           touch dist/.nojekyll
           cp dist/index.html dist/404.html || true
 
-      - name: Guardar cambios compilados (assets/, docs/, dist/) en rama principal si el usuario subió solo archivos .tsx/.json
-        continue-on-error: true
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A assets docs dist somisa_data.json .nojekyll || true
-          if ! git diff --staged --quiet; then
-            git commit -m "Auto-build: actualizar assets, docs y dist tras cambio en código [skip ci]"
-            git push origin HEAD || true
-          fi
-
-      - name: Actualizar rama gh-pages (para modo Deploy from a branch -> gh-pages)
+      - name: Actualizar rama gh-pages (para modo Deploy from a branch)
         continue-on-error: true
         uses: JamesIves/github-pages-deploy-action@v4
         with:

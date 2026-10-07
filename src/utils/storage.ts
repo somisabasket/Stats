@@ -1,6 +1,6 @@
 import { Game, ExcelRowStats, PlayerProfile } from '../types/basketball';
 import { calculateRowMetrics } from './calculations';
-import bundledSharedData from '../../public/somisa_data.json';
+import { BUNDLED_SOMISA_DATA as bundledSharedData } from './bundledGamesData';
 
 const STORAGE_KEY = 'somisa_stats_data_v5_all_matches';
 const ROSTER_KEY = 'somisa_master_roster_v2';
