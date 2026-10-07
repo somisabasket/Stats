@@ -1,5 +1,6 @@
-import { Game, ExcelRowStats,PlayerProfile } from '../types/basketball';
+import { Game, ExcelRowStats, PlayerProfile } from '../types/basketball';
 import { calculateRowMetrics } from './calculations';
+import bundledSharedData from '../../public/somisa_data.json';
 
 const STORAGE_KEY = 'somisa_stats_data_v4';
 const ROSTER_KEY = 'somisa_master_roster_v1';
@@ -64,41 +65,67 @@ export function saveGitHubSyncConfig(config: GitHubSyncConfig): void {
  * and merges with local games so any browser opening the GitHub URL gets all published matches.
  */
 export async function fetchRemoteSharedData(): Promise<{ games?: Game[]; roster?: PlayerProfile[]; updatedAt?: string } | null> {
-  try {
-    const cacheBuster = `?t=${Date.now()}`;
-    const res = await fetch(`./somisa_data.json${cacheBuster}`, { cache: 'no-store' });
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data && Array.isArray(data.games)) {
-      return {
-        games: data.games,
-        roster: Array.isArray(data.roster) ? data.roster : undefined,
-        updatedAt: data.exportDate
-      };
+  const urlsToTry = [
+    `./somisa_data.json?t=${Date.now()}`,
+    `./public/somisa_data.json?t=${Date.now()}`
+  ];
+
+  for (const url of urlsToTry) {
+    try {
+      const res = await fetch(url, { cache: 'no-store' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && Array.isArray(data.games) && data.games.length > 0) {
+          return {
+            games: data.games as Game[],
+            roster: Array.isArray(data.roster) ? (data.roster as PlayerProfile[]) : undefined,
+            updatedAt: data.exportDate
+          };
+        }
+      }
+    } catch {
+      // Try next URL
     }
-  } catch {
-    // Offline or not available
   }
+
+  // Fallback to bundled somisa_data.json compiled into the JS bundle
+  if (bundledSharedData && Array.isArray(bundledSharedData.games) && bundledSharedData.games.length > 0) {
+    return {
+      games: bundledSharedData.games as unknown as Game[],
+      roster: Array.isArray(bundledSharedData.roster) ? (bundledSharedData.roster as unknown as PlayerProfile[]) : undefined,
+      updatedAt: bundledSharedData.exportDate
+    };
+  }
+
   return null;
 }
 
 /**
- * Merges remote games and local games by ID so neither is lost, keeping the newest or remote version
+ * Merges remote/bundled games and local games by ID so every browser on any PC gets all matches,
+ * and removes the legacy placeholder sample game if real matches exist.
  */
 export function mergeGamesList(localGames: Game[], remoteGames: Game[]): Game[] {
   if (!remoteGames || remoteGames.length === 0) return localGames;
   const map = new Map<string, Game>();
-  // First add remote games
+  // First add remote/official games
   remoteGames.forEach(g => {
     if (g && g.id) map.set(g.id, g);
   });
-  // Then add any local games (if local has more recent changes or additional games)
+  // Then add any local games created on this browser
   localGames.forEach(g => {
     if (g && g.id && !map.has(g.id)) {
       map.set(g.id, g);
     }
   });
-  return Array.from(map.values()).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+  let merged = Array.from(map.values());
+  // If we have real imported/created matches besides the old sample game, remove the old sample game
+  // to avoid duplicating GIMNASIA (Pergamino)
+  if (merged.length > 1 && merged.some(g => g.id !== 'game_somisa_gimnasia_2026')) {
+    merged = merged.filter(g => g.id !== 'game_somisa_gimnasia_2026');
+  }
+
+  return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 /**
@@ -223,20 +250,31 @@ export const DEFAULT_SOMISA_ROSTER: PlayerProfile[] = [
   { id: 'som_p5', name: 'DIAZ, JAIME', number: 7, position: 'Escolta', isCaptain: false, active: true },
   { id: 'som_p6', name: 'BUALO, AGUSTIN', number: 8, position: 'Base', isCaptain: false, active: true },
   { id: 'som_p7', name: 'BROVARONE, FAUSTINO', number: 9, position: 'Escolta', isCaptain: false, active: true },
-  { id: 'som_p8', name: 'VITANGELI, SANTINO', number: 10, "position": 'Base', isCaptain: false, active: true },
+  { id: 'som_p8', name: 'VITANGELI, SANTINO', number: 10, position: 'Base', isCaptain: false, active: true },
   { id: 'som_p9', name: 'RATTERO, RAMIRO', number: 11, position: 'Ala-Pívot', isCaptain: false, active: true },
   { id: 'som_p10', name: 'URANGA, SEBASTIAN', number: 12, position: 'Pívot', isCaptain: true, active: true },
-  { id: 'som_p11', name: 'MASCAZZINI, ALEJO BENJAMIN', number: 20, position: 'Alero', isCaptain: false, active: true },
-  { id: 'som_p12', name: 'ANDOLLO, SEBASTIAN', number: 33, position: 'Pívot', isCaptain: false, active: true }
+  { id: 'som_p11', name: 'VASSOLO, EMILIANO', number: 13, position: 'Alero', isCaptain: false, active: true },
+  { id: 'som_p12', name: 'MASCAZZINI, ALEJO BENJAMIN', number: 20, position: 'Alero', isCaptain: false, active: true },
+  { id: 'som_p13', name: 'ANDOLLO, SEBASTIAN', number: 33, position: 'Pívot', isCaptain: false, active: true },
+  { id: 'som_p14', name: 'MENA, SEBASTIAN ALEJANDRO', number: 88, position: 'Pívot', isCaptain: false, active: true }
 ];
 
 export function loadMasterRoster(): PlayerProfile[] {
+  const bundledRoster = (bundledSharedData && Array.isArray(bundledSharedData.roster) && bundledSharedData.roster.length > 0)
+    ? (bundledSharedData.roster as unknown as PlayerProfile[])
+    : DEFAULT_SOMISA_ROSTER;
+
   try {
     const raw = localStorage.getItem(ROSTER_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Merge with DEFAULT_SOMISA_ROSTER / bundledRoster so new players (like #13 Vassolo, #88 Mena) are included
+        const map = new Map<string, PlayerProfile>();
+        DEFAULT_SOMISA_ROSTER.forEach(p => map.set(p.name.trim().toUpperCase(), p));
+        bundledRoster.forEach(p => map.set(p.name.trim().toUpperCase(), p));
+        parsed.forEach((p: PlayerProfile) => map.set(p.name.trim().toUpperCase(), p));
+        return Array.from(map.values()).sort((a, b) => a.number - b.number);
       }
     }
   } catch (err) {
@@ -274,6 +312,10 @@ export function getSampleGameRows(): ExcelRowStats[] {
 }
 
 export function getInitialGames(): Game[] {
+  if (bundledSharedData && Array.isArray(bundledSharedData.games) && bundledSharedData.games.length > 0) {
+    return bundledSharedData.games as unknown as Game[];
+  }
+
   const sampleRows = getSampleGameRows();
   const sampleGame: Game = {
     id: 'game_somisa_gimnasia_2026',
@@ -316,20 +358,24 @@ export function getInitialGames(): Game[] {
 }
 
 export function loadSavedGames(): Game[] {
+  const initialBundled = getInitialGames();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // Siempre fusionar los partidos de localStorage con los partidos oficiales empaquetados en somisa_data.json
+        // para que ninguna PC se quede solo con 1 partido viejo en caché.
+        const merged = mergeGamesList(parsed, initialBundled);
+        saveGames(merged);
+        return merged;
       }
     }
   } catch (err) {
     console.error('Failed to load games from localStorage:', err);
   }
-  const init = getInitialGames();
-  saveGames(init);
-  return init;
+  saveGames(initialBundled);
+  return initialBundled;
 }
 
 export function saveGames(games: Game[]): void {
