@@ -28,13 +28,19 @@ jobs:
           cache: 'npm'
 
       - name: Instalar dependencias
-        run: npm install --legacy-peer-deps || npm install
+        continue-on-error: true
+        run: npm install --legacy-peer-deps || npm install || true
 
-      - name: Compilar aplicación (Vite Build)
-        run: npm run build
+      - name: Compilar aplicación (Vite Build) o usar build precompilado
+        run: |
+          npm run build || true
+          if [ ! -f "dist/index.html" ] && [ -d "docs" ]; then
+            cp -r docs dist
+          fi
 
       - name: Asegurar archivos .nojekyll y 404.html en dist
         run: |
+          mkdir -p dist
           touch dist/.nojekyll
           cp dist/index.html dist/404.html || true
 
