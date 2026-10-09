@@ -112,31 +112,55 @@ export async function fetchRemoteSharedData(): Promise<{ games?: Game[]; roster?
 }
 
 /**
- * Merges remote/bundled games and local games by ID so every browser on any PC gets all matches,
- * and removes the legacy placeholder sample game if real matches exist.
+ * Genera una clave única por partido combinando rival y resultado (o fecha si aún está 0-0)
+ * para evitar que un mismo encuentro importado en distintas PCs (con distinto timestamp ID)
+ * aparezca 2 veces al sincronizar con GitHub.
  */
-export function mergeGamesList(localGames: Game[], remoteGames: Game[]): Game[] {
-  if (!remoteGames || remoteGames.length === 0) return localGames;
-  const map = new Map<string, Game>();
-  // First add remote/official games
-  remoteGames.forEach(g => {
-    if (g && g.id) map.set(g.id, g);
-  });
-  // Then add any local games created on this browser
-  localGames.forEach(g => {
-    if (g && g.id && !map.has(g.id)) {
-      map.set(g.id, g);
-    }
-  });
+function getMatchSignature(g: Game): string {
+  const opp = (g.opponentName || '')
+    .trim()
+    .toUpperCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ');
+  const scoreMy = Number(g.scoreMyTeam) || 0;
+  const scoreOpp = Number(g.scoreOpponent) || 0;
+  if (scoreMy === 0 && scoreOpp === 0) {
+    return `${opp}__0-0__${g.date || ''}__${g.id}`;
+  }
+  return `${opp}__${scoreMy}-${scoreOpp}`;
+}
 
-  let merged = Array.from(map.values());
-  // If we have real imported/created matches besides the old sample game, remove the old sample game
-  // to avoid duplicating GIMNASIA (Pergamino)
-  if (merged.length > 1 && merged.some(g => g.id !== 'game_somisa_gimnasia_2026')) {
-    merged = merged.filter(g => g.id !== 'game_somisa_gimnasia_2026');
+export function deduplicateGamesList(games: Game[]): Game[] {
+  const byId = new Map<string, Game>();
+  const bySignature = new Map<string, Game>();
+
+  for (const g of games) {
+    if (!g || !g.id) continue;
+    const sig = getMatchSignature(g);
+    if (byId.has(g.id) || bySignature.has(sig)) {
+      continue;
+    }
+    byId.set(g.id, g);
+    bySignature.set(sig, g);
   }
 
-  return merged.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  let result = Array.from(byId.values());
+  if (result.length > 1 && result.some(g => g.id !== 'game_somisa_gimnasia_2026')) {
+    result = result.filter(g => g.id !== 'game_somisa_gimnasia_2026');
+  }
+
+  return result.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+/**
+ * Merges remote/bundled games and local games by ID and by match signature (Opponent + Score)
+ * so every browser on any PC gets all matches without duplicating matches imported on different PCs.
+ */
+export function mergeGamesList(localGames: Game[], remoteGames: Game[]): Game[] {
+  if (!remoteGames || remoteGames.length === 0) return deduplicateGamesList(localGames);
+  // Priorizamos remoteGames (oficiales del repositorio) y luego agregamos los locales nuevos que no existan
+  return deduplicateGamesList([...remoteGames, ...localGames]);
 }
 
 /**
@@ -156,13 +180,14 @@ export async function pushDataToGitHubRepo(
     };
   }
 
+  const cleanGames = deduplicateGamesList(games);
   const payload = {
     appName: 'Club SOMISA Básquetbol',
     version: '4.0.0',
     exportDate: new Date().toISOString(),
-    totalGames: games.length,
+    totalGames: cleanGames.length,
     roster,
-    games
+    games: cleanGames
   };
 
   const jsonContent = JSON.stringify(payload, null, 2);

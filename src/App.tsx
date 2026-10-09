@@ -9,6 +9,7 @@ import {
   saveDarkModePreference,
   fetchRemoteSharedData,
   mergeGamesList,
+  deduplicateGamesList,
   loadGitHubSyncConfig,
   pushDataToGitHubRepo,
 } from './utils/storage';
@@ -209,9 +210,10 @@ export default function App() {
   };
 
   const handleImportBackup = (importedGames: Game[]) => {
-    setGames(importedGames);
-    if (importedGames.length > 0) {
-      setCurrentGameId(importedGames[0].id);
+    const clean = deduplicateGamesList(importedGames);
+    setGames(clean);
+    if (clean.length > 0) {
+      setCurrentGameId(clean[0].id);
     }
   };
 
@@ -239,8 +241,9 @@ export default function App() {
 
   const handleImportFullData = (imported: { games: Game[]; roster?: PlayerProfile[] }) => {
     if (imported.games && imported.games.length > 0) {
-      setGames(imported.games);
-      setCurrentGameId(imported.games[0].id);
+      const clean = deduplicateGamesList(imported.games);
+      setGames(clean);
+      setCurrentGameId(clean[0].id);
     }
     if (imported.roster && imported.roster.length > 0) {
       setRoster(imported.roster);
@@ -266,7 +269,7 @@ export default function App() {
     };
 
     setGames((prev) => {
-      const next = [newGame, ...prev];
+      const next = deduplicateGamesList([newGame, ...prev]);
       triggerAutoGitHubSync(next);
       return next;
     });
