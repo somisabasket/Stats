@@ -154,13 +154,61 @@ export function deduplicateGamesList(games: Game[]): Game[] {
 }
 
 /**
- * Merges remote/bundled games and local games by ID and by match signature (Opponent + Score)
- * so every browser on any PC gets all matches without duplicating matches imported on different PCs.
+ * Formatea una fecha proveniente de distintas fuentes (DD/MM/YYYY, ISO, etc.) al formato estándar YYYY-MM-DD
+ * requerido por los controles interactivos <input type="date">.
+ */
+export function formatToInputDate(dateStr?: string): string {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  const trimmed = dateStr.trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    return trimmed;
+  }
+  const dmyMatch = trimmed.match(/^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{4})$/);
+  if (dmyMatch) {
+    const [, day, month, year] = dmyMatch;
+    return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+  }
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split('T')[0];
+  }
+  return trimmed;
+}
+
+/**
+ * Merges remote/bundled games and local games by ID and by match signature (Opponent + Score).
+ * Las ediciones del usuario local (fecha, condición local/visitante, etc.) tienen máxima prioridad
+ * sobre los datos estáticos o remotos para que nunca se reviertan al refrescar la página.
  */
 export function mergeGamesList(localGames: Game[], remoteGames: Game[]): Game[] {
-  if (!remoteGames || remoteGames.length === 0) return deduplicateGamesList(localGames);
-  // Priorizamos remoteGames (oficiales del repositorio) y luego agregamos los locales nuevos que no existan
-  return deduplicateGamesList([...remoteGames, ...localGames]);
+  if (!remoteGames || remoteGames.length === 0) return deduplicateGamesList(localGames || []);
+  if (!localGames || localGames.length === 0) return deduplicateGamesList(remoteGames);
+  // Priorizamos localGames (ediciones activas del usuario) y agregamos partidos remotos que no existan localmente
+  return deduplicateGamesList([...localGames, ...remoteGames]);
+}
+
+/**
+ * Guarda los datos compartidos en el servidor local si el endpoint /api/save-shared-data está disponible.
+ */
+export async function syncToLocalServer(games: Game[], roster: PlayerProfile[] = []): Promise<void> {
+  if (typeof window === 'undefined') return;
+  try {
+    const payload = {
+      appName: 'Club SOMISA Básquetbol',
+      version: '4.0.0',
+      exportDate: new Date().toISOString(),
+      totalGames: games.length,
+      roster,
+      games: deduplicateGamesList(games)
+    };
+    await fetch('/api/save-shared-data', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch {
+    // Silently ignore en entornos estáticos como GitHub Pages
+  }
 }
 
 /**

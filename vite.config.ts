@@ -108,10 +108,49 @@ function githubPagesMultiTargetPlugin() {
   };
 }
 
+function devSavePlugin() {
+  return {
+    name: 'dev-save-plugin',
+    configureServer(server: any) {
+      server.middlewares.use('/api/save-shared-data', (req: any, res: any) => {
+        if (req.method === 'POST') {
+          let body = '';
+          req.on('data', (chunk: any) => { body += chunk; });
+          req.on('end', () => {
+            try {
+              const data = JSON.parse(body);
+              const rootDir = path.resolve(import.meta.dirname || '.');
+              const jsonStr = JSON.stringify(data, null, 2);
+              const targetFiles = [
+                path.join(rootDir, 'public', 'somisa_data.json'),
+                path.join(rootDir, 'somisa_data.json'),
+                path.join(rootDir, 'docs', 'somisa_data.json'),
+              ];
+              for (const tf of targetFiles) {
+                try {
+                  fs.writeFileSync(tf, jsonStr, 'utf-8');
+                } catch {}
+              }
+              res.setHeader('Content-Type', 'application/json');
+              res.end(JSON.stringify({ success: true }));
+            } catch (err: any) {
+              res.statusCode = 500;
+              res.end(JSON.stringify({ error: err.message }));
+            }
+          });
+        } else {
+          res.statusCode = 405;
+          res.end();
+        }
+      });
+    }
+  };
+}
+
 export default defineConfig(() => {
   return {
     base: './',
-    plugins: [react(), tailwindcss(), githubPagesMultiTargetPlugin()],
+    plugins: [react(), tailwindcss(), githubPagesMultiTargetPlugin(), devSavePlugin()],
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname || '.'),

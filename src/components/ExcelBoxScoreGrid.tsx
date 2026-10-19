@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Clipboard, PlusCircle, ChevronDown, Users, CheckCircle2, Github, Shield, FileSpreadsheet, Download, Home, Plane } from 'lucide-react';
+import { Plus, Trash2, Clipboard, PlusCircle, ChevronDown, Users, CheckCircle2, Github, Shield, FileSpreadsheet, Download, Home, Plane, Calendar, Check } from 'lucide-react';
 import { Game, ExcelRowStats } from '../types/basketball';
 import { calculateRowMetrics, calculateTeamRowTotals } from '../utils/calculations';
 import { parseExcelClipboardText } from '../utils/excelImport';
+import { formatToInputDate } from '../utils/storage';
 import { DeleteMatchModal } from './DeleteMatchModal';
 import { ClubSomisaLogo } from './ClubSomisaLogo';
 
@@ -35,6 +36,12 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
   const [pastedText, setPastedText] = useState('');
   const [pasteStatus, setPasteStatus] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<string | null>(null);
+
+  const triggerSaveNotice = (msg: string) => {
+    setSaveFeedback(msg);
+    setTimeout(() => setSaveFeedback(null), 2500);
+  };
 
   const teamTotals = calculateTeamRowTotals(game.rows);
 
@@ -222,12 +229,18 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
             <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
               <span className="font-semibold text-slate-700 dark:text-slate-300">{game.competition}</span>
               <span>•</span>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <Calendar className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 <input
                   type="date"
-                  value={game.date}
-                  onChange={(e) => onUpdateGame({ date: e.target.value })}
-                  className="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 py-0.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-hidden font-medium"
+                  value={formatToInputDate(game.date)}
+                  onChange={(e) => {
+                    if (e.target.value) {
+                      onUpdateGame({ date: e.target.value });
+                      triggerSaveNotice('Fecha guardada ✓');
+                    }
+                  }}
+                  className="bg-transparent py-0.5 text-xs text-slate-800 dark:text-slate-200 cursor-pointer focus:outline-hidden font-semibold"
                   title="Editar fecha del partido"
                 />
               </div>
@@ -236,7 +249,10 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
               <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
                 <button
                   type="button"
-                  onClick={() => onUpdateGame({ homeAway: 'home' })}
+                  onClick={() => {
+                    onUpdateGame({ homeAway: 'home' });
+                    triggerSaveNotice('Condición: Local guardada ✓');
+                  }}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                     (game.homeAway || 'home') === 'home'
                       ? 'bg-[#00205B] text-white shadow-xs dark:bg-blue-600'
@@ -249,7 +265,10 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
                 </button>
                 <button
                   type="button"
-                  onClick={() => onUpdateGame({ homeAway: 'away' })}
+                  onClick={() => {
+                    onUpdateGame({ homeAway: 'away' });
+                    triggerSaveNotice('Condición: Visitante guardada ✓');
+                  }}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
                     game.homeAway === 'away'
                       ? 'bg-amber-600 text-white shadow-xs dark:bg-amber-500 dark:text-slate-900'
@@ -261,6 +280,13 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
                   <span>Visitante</span>
                 </button>
               </div>
+
+              {saveFeedback && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 animate-in fade-in">
+                  <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>{saveFeedback}</span>
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-2.5">

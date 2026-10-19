@@ -135,6 +135,19 @@ export function parseGridData(
         season = yearMatch[1];
       }
 
+      // Extract date if present (e.g. DD/MM/YYYY, DD-MM-YYYY or YYYY-MM-DD)
+      const dmyMatch = rowStr.match(/\b(\d{1,2})[\/\.-](\d{1,2})[\/\.-](20\d{2})\b/);
+      if (dmyMatch) {
+        const [, d, m, y] = dmyMatch;
+        date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      } else {
+        const ymdMatch = rowStr.match(/\b(20\d{2})[\/\.-](\d{1,2})[\/\.-](\d{1,2})\b/);
+        if (ymdMatch) {
+          const [, y, m, d] = ymdMatch;
+          date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        }
+      }
+
       // Extract tournament/competition
       if (rowStr.toUpperCase().includes('LIGA')) {
         const compMatch = rowStr.match(/LIGA[^-–—\n]+/i);

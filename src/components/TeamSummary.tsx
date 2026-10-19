@@ -352,7 +352,7 @@ export const TeamSummary: React.FC<TeamSummaryProps> = ({
       // Competition
       if (selectedCompetition !== 'all' && g.competition !== selectedCompetition) return false;
       // Venue
-      if (selectedVenue !== 'all' && g.homeAway !== selectedVenue) return false;
+      if (selectedVenue !== 'all' && (g.homeAway || 'home') !== selectedVenue) return false;
 
       return true;
     });
@@ -904,11 +904,11 @@ export const TeamSummary: React.FC<TeamSummaryProps> = ({
                           </td>
                           <td className="py-2.5 px-3 text-center">
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              g.homeAway === 'home'
+                              (g.homeAway || 'home') === 'home'
                                 ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
                                 : 'bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800'
                             }`}>
-                              {g.homeAway === 'home' ? 'Local' : 'Visitante'}
+                              {(g.homeAway || 'home') === 'home' ? 'Local' : 'Visitante'}
                             </span>
                           </td>
                           <td className="py-2.5 px-3 text-center">

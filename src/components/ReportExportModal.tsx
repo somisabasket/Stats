@@ -80,7 +80,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
       if (startDate && g.date < startDate) return false;
       if (endDate && g.date > endDate) return false;
       if (selectedCompetition !== 'all' && g.competition !== selectedCompetition) return false;
-      if (selectedVenue !== 'all' && g.homeAway !== selectedVenue) return false;
+      if (selectedVenue !== 'all' && (g.homeAway || 'home') !== selectedVenue) return false;
       return true;
     });
   }, [allGames, startDate, endDate, selectedCompetition, selectedVenue, selectedPreset]);
@@ -472,7 +472,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                         {selectedGame.myTeamName} vs {selectedGame.opponentName}
                       </h4>
                       <span className="text-[11px] text-slate-500">
-                        {selectedGame.date} · {selectedGame.competition} · Condición: {selectedGame.homeAway === 'home' ? 'Local' : 'Visitante'}
+                        {selectedGame.date} · {selectedGame.competition} · Condición: {(selectedGame.homeAway || 'home') === 'home' ? 'Local' : 'Visitante'}
                       </span>
                     </div>
                     <div className="text-right px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800">

@@ -12,6 +12,7 @@ import {
   deduplicateGamesList,
   loadGitHubSyncConfig,
   pushDataToGitHubRepo,
+  syncToLocalServer,
 } from './utils/storage';
 import { calculateRowMetrics } from './utils/calculations';
 import { Header, ActiveTab } from './components/Header';
@@ -100,6 +101,8 @@ export default function App() {
         }
         return g;
       });
+      saveGames(next);
+      syncToLocalServer(next, roster);
       triggerAutoGitHubSync(next);
       return next;
     });
@@ -113,6 +116,8 @@ export default function App() {
         }
         return g;
       });
+      saveGames(next);
+      syncToLocalServer(next, roster);
       triggerAutoGitHubSync(next);
       return next;
     });
