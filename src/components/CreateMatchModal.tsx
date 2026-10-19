@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlusCircle, X, Calendar, Trophy, Users, Shield } from 'lucide-react';
+import { PlusCircle, X, Calendar, Trophy, Users, Shield, Home, Plane } from 'lucide-react';
 import { Game } from '../types/basketball';
 import { getSampleGameRows } from '../utils/storage';
 import { ClubSomisaLogo } from './ClubSomisaLogo';
@@ -146,16 +146,34 @@ export const CreateMatchModal: React.FC<CreateMatchModalProps> = ({
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
-                Condición
+                Condición de Juego
               </label>
-              <select
-                value={homeAway}
-                onChange={(e) => setHomeAway(e.target.value as any)}
-                className="w-full text-xs font-medium py-2 px-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-              >
-                <option value="home">Local (San Nicolás)</option>
-                <option value="away">Visitante</option>
-              </select>
+              <div className="flex items-center rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 h-[38px]">
+                <button
+                  type="button"
+                  onClick={() => setHomeAway('home')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-full rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    homeAway === 'home'
+                      ? 'bg-[#00205B] text-white shadow-xs dark:bg-blue-600'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Local (San Nicolás)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setHomeAway('away')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 h-full rounded-md text-xs font-bold transition-all cursor-pointer ${
+                    homeAway === 'away'
+                      ? 'bg-amber-600 text-white shadow-xs dark:bg-amber-500 dark:text-slate-900'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <Plane className="w-3.5 h-3.5" />
+                  <span>Visitante</span>
+                </button>
+              </div>
             </div>
           </div>
 

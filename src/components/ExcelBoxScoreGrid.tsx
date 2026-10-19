@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Trash2, Clipboard, PlusCircle, ChevronDown, Users, CheckCircle2, Github, Shield, FileSpreadsheet, Download } from 'lucide-react';
+import { Plus, Trash2, Clipboard, PlusCircle, ChevronDown, Users, CheckCircle2, Github, Shield, FileSpreadsheet, Download, Home, Plane } from 'lucide-react';
 import { Game, ExcelRowStats } from '../types/basketball';
 import { calculateRowMetrics, calculateTeamRowTotals } from '../utils/calculations';
 import { parseExcelClipboardText } from '../utils/excelImport';
@@ -219,14 +219,48 @@ export const ExcelBoxScoreGrid: React.FC<ExcelBoxScoreGridProps> = ({
               </div>
             )}
 
-            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <div className="flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
               <span className="font-semibold text-slate-700 dark:text-slate-300">{game.competition}</span>
               <span>•</span>
-              <span>{game.date}</span>
+              <div className="flex items-center gap-1">
+                <input
+                  type="date"
+                  value={game.date}
+                  onChange={(e) => onUpdateGame({ date: e.target.value })}
+                  className="bg-transparent border-b border-dashed border-slate-300 dark:border-slate-700 py-0.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer focus:outline-hidden font-medium"
+                  title="Editar fecha del partido"
+                />
+              </div>
               <span>•</span>
-              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-blue-50 dark:bg-blue-950/60 text-[#00205B] dark:text-[#93C5FD]">
-                {game.homeAway === 'home' ? 'Local' : 'Visitante'}
-              </span>
+              {/* Selector interactivo de condición Local / Visitante */}
+              <div className="inline-flex items-center rounded-lg p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => onUpdateGame({ homeAway: 'home' })}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    (game.homeAway || 'home') === 'home'
+                      ? 'bg-[#00205B] text-white shadow-xs dark:bg-blue-600'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Establecer condición: Local (Estadio Socios Fundadores, San Nicolás)"
+                >
+                  <Home className="w-3.5 h-3.5" />
+                  <span>Local</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onUpdateGame({ homeAway: 'away' })}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all cursor-pointer ${
+                    game.homeAway === 'away'
+                      ? 'bg-amber-600 text-white shadow-xs dark:bg-amber-500 dark:text-slate-900'
+                      : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                  }`}
+                  title="Establecer condición: Visitante"
+                >
+                  <Plane className="w-3.5 h-3.5" />
+                  <span>Visitante</span>
+                </button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2.5">

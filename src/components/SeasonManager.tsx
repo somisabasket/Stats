@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Plus, Trash2, Calendar, Shield, ArrowRight } from 'lucide-react';
+import { Trophy, Plus, Trash2, Calendar, Shield, ArrowRight, Home, Plane, Filter } from 'lucide-react';
 import { Game } from '../types/basketball';
 import { calculateTeamRowTotals } from '../utils/calculations';
 import { ClubSomisaLogo } from './ClubSomisaLogo';
@@ -11,6 +11,7 @@ interface SeasonManagerProps {
   onCreateGame: (newGame: Game) => void;
   onDeleteGame: (gameId: string) => void;
   onImportBackup?: (games: Game[]) => void;
+  onUpdateGame?: (gameId: string, updated: Partial<Game>) => void;
 }
 
 export const SeasonManager: React.FC<SeasonManagerProps> = ({
@@ -18,11 +19,18 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
   currentGameId,
   onSelectGame,
   onDeleteGame,
+  onUpdateGame,
 }) => {
   const [filterSeason, setFilterSeason] = useState('all');
+  const [filterVenue, setFilterVenue] = useState<'all' | 'home' | 'away'>('all');
 
   const seasons = Array.from(new Set(games.map(g => g.season || '2026')));
-  const filtered = filterSeason === 'all' ? games : games.filter(g => g.season === filterSeason);
+  
+  const filtered = games.filter(g => {
+    if (filterSeason !== 'all' && (g.season || '2026') !== filterSeason) return false;
+    if (filterVenue !== 'all' && (g.homeAway || 'home') !== filterVenue) return false;
+    return true;
+  });
 
   // Season record calculation
   const wins = games.filter(g => g.scoreMyTeam > g.scoreOpponent).length;
@@ -43,18 +51,61 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/80 font-medium">Filtrar Temporada:</span>
-          <select
-            value={filterSeason}
-            onChange={(e) => setFilterSeason(e.target.value)}
-            className="text-xs font-bold py-1.5 px-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-hidden"
-          >
-            <option value="all" className="text-slate-900">Todas las Temporadas</option>
-            {seasons.map(s => (
-              <option key={s} value={s} className="text-slate-900">Temporada {s}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-white/80 font-medium">Condición:</span>
+            <div className="inline-flex items-center rounded-lg p-0.5 bg-white/10 border border-white/20">
+              <button
+                type="button"
+                onClick={() => setFilterVenue('all')}
+                className={`px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  filterVenue === 'all'
+                    ? 'bg-white text-[#00205B] shadow-xs'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterVenue('home')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  filterVenue === 'home'
+                    ? 'bg-white text-[#00205B] shadow-xs'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Home className="w-3 h-3" />
+                <span>Local</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setFilterVenue('away')}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-bold transition-all cursor-pointer ${
+                  filterVenue === 'away'
+                    ? 'bg-amber-400 text-[#00205B] shadow-xs'
+                    : 'text-white/80 hover:text-white'
+                }`}
+              >
+                <Plane className="w-3 h-3" />
+                <span>Visitante</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs text-white/80 font-medium">Temporada:</span>
+            <select
+              value={filterSeason}
+              onChange={(e) => setFilterSeason(e.target.value)}
+              className="text-xs font-bold py-1.5 px-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-hidden cursor-pointer"
+            >
+              <option value="all" className="text-slate-900">Todas las Temporadas</option>
+              {seasons.map(s => (
+                <option key={s} value={s} className="text-slate-900">Temporada {s}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -64,6 +115,7 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
           const isSelected = g.id === currentGameId;
           const isWin = g.scoreMyTeam > g.scoreOpponent;
           const isLoss = g.scoreMyTeam < g.scoreOpponent;
+          const isHome = (g.homeAway || 'home') === 'home';
 
           return (
             <div
@@ -77,13 +129,35 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
             >
               <div className="flex items-center justify-between text-xs text-slate-500 mb-2">
                 <span className="font-semibold text-slate-700 dark:text-slate-300">{g.date}</span>
-                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                  isWin ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' :
-                  isLoss ? 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' :
-                  'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                }`}>
-                  {isWin ? 'Victoria' : isLoss ? 'Derrota' : 'Empate'}
-                </span>
+                <div className="flex items-center gap-1.5">
+                  {/* Botón interactivo para alternar condición Local / Visitante */}
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onUpdateGame) {
+                        onUpdateGame(g.id, { homeAway: isHome ? 'away' : 'home' });
+                      }
+                    }}
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider border transition-colors cursor-pointer ${
+                      isHome
+                        ? 'bg-blue-50 dark:bg-blue-950/60 text-[#00205B] dark:text-[#93C5FD] border-blue-200 dark:border-blue-800 hover:bg-blue-100'
+                        : 'bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 hover:bg-amber-100'
+                    }`}
+                    title="Hacer clic para alternar entre Local y Visitante"
+                  >
+                    {isHome ? <Home className="w-2.5 h-2.5" /> : <Plane className="w-2.5 h-2.5" />}
+                    <span>{isHome ? 'Local' : 'Visitante'}</span>
+                  </button>
+
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                    isWin ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300' :
+                    isLoss ? 'bg-red-100 text-red-800 dark:bg-red-950/60 dark:text-red-300' :
+                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                  }`}>
+                    {isWin ? 'Victoria' : isLoss ? 'Derrota' : 'Empate'}
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-between my-3">

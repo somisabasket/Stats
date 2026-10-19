@@ -12,7 +12,9 @@ import {
   Users, 
   Sparkles,
   RefreshCw,
-  PlusCircle
+  PlusCircle,
+  Home,
+  Plane
 } from 'lucide-react';
 import { Game, PlayerProfile } from '../types/basketball';
 import { parseExcelFile, parseExcelClipboardText, ParsedExcelGame } from '../utils/excelImport';
@@ -50,6 +52,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
   const [editOpponent, setEditOpponent] = useState<string>('GIMNASIA (Pergamino)');
   const [editCompetition, setEditCompetition] = useState<string>('LIGA PCIAL FBB (Masculino 2026) - CABB');
   const [editDate, setEditDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [editHomeAway, setEditHomeAway] = useState<'home' | 'away'>('home');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -72,6 +75,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       setEditOpponent(parsed.opponentName !== 'Rival' ? parsed.opponentName : currentGame.opponentName || 'GIMNASIA (Pergamino)');
       setEditCompetition(parsed.competition || 'LIGA PCIAL FBB (Masculino 2026) - CABB');
       setEditDate(parsed.date || new Date().toISOString().split('T')[0]);
+      setEditHomeAway(parsed.homeAway || currentGame.homeAway || 'home');
     } catch (err: any) {
       console.error('Error parsing excel:', err);
       setErrorMessage(`Error al leer el archivo Excel: ${err.message || 'Formato no compatible'}`);
@@ -100,6 +104,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       setEditOpponent(parsed.opponentName !== 'Rival' ? parsed.opponentName : currentGame.opponentName || 'GIMNASIA (Pergamino)');
       setEditCompetition(parsed.competition || 'LIGA PCIAL FBB (Masculino 2026) - CABB');
       setEditDate(parsed.date || new Date().toISOString().split('T')[0]);
+      setEditHomeAway(parsed.homeAway || currentGame.homeAway || 'home');
     } catch (err: any) {
       console.error('Error parsing text:', err);
       setErrorMessage('Error al procesar el texto pegado.');
@@ -152,6 +157,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       opponentName: editOpponent,
       competition: editCompetition,
       date: editDate,
+      homeAway: editHomeAway,
       scoreMyTeam: parsedResult.scoreMyTeam,
       scoreOpponent: parsedResult.scoreOpponent || currentGame.scoreOpponent || 0,
       rows: parsedResult.rows,
@@ -164,7 +170,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
       onCreateNewGameWithData({
         ...gamePayload,
         season: parsedResult.season || '2026',
-        homeAway: 'home',
+        homeAway: editHomeAway,
         shots: []
       });
     }
@@ -341,7 +347,7 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
               </div>
 
               {/* Match Metadata Form */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 p-4 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
                 <div>
                   <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
                     Mi Equipo
@@ -385,6 +391,39 @@ export const ImportExcelModal: React.FC<ImportExcelModalProps> = ({
                     onChange={(e) => setEditDate(e.target.value)}
                     className="w-full text-xs font-medium py-1.5 px-2.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200"
                   />
+                </div>
+                <div>
+                  <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                    Condición
+                  </label>
+                  <div className="flex items-center rounded-lg p-0.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 h-[34px]">
+                    <button
+                      type="button"
+                      onClick={() => setEditHomeAway('home')}
+                      className={`flex-1 flex items-center justify-center gap-1 h-full rounded text-[11px] font-bold transition-all cursor-pointer ${
+                        editHomeAway === 'home'
+                          ? 'bg-[#00205B] text-white shadow-xs dark:bg-blue-600'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      title="Partido jugado de Local en San Nicolás"
+                    >
+                      <Home className="w-3.5 h-3.5" />
+                      <span>Local</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditHomeAway('away')}
+                      className={`flex-1 flex items-center justify-center gap-1 h-full rounded text-[11px] font-bold transition-all cursor-pointer ${
+                        editHomeAway === 'away'
+                          ? 'bg-amber-600 text-white shadow-xs dark:bg-amber-500 dark:text-slate-900'
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                      title="Partido jugado de Visitante"
+                    >
+                      <Plane className="w-3.5 h-3.5" />
+                      <span>Visita</span>
+                    </button>
+                  </div>
                 </div>
               </div>
 

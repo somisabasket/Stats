@@ -93,14 +93,29 @@ export default function App() {
 
   // Update current game
   const handleUpdateCurrentGame = (partial: Partial<Game>) => {
-    setGames((prev) =>
-      prev.map((g) => {
+    setGames((prev) => {
+      const next = prev.map((g) => {
         if (g.id === currentGame.id) {
           return { ...g, ...partial };
         }
         return g;
-      })
-    );
+      });
+      triggerAutoGitHubSync(next);
+      return next;
+    });
+  };
+
+  const handleUpdateGameById = (gameId: string, partial: Partial<Game>) => {
+    setGames((prev) => {
+      const next = prev.map((g) => {
+        if (g.id === gameId) {
+          return { ...g, ...partial };
+        }
+        return g;
+      });
+      triggerAutoGitHubSync(next);
+      return next;
+    });
   };
 
   // Add shot in ShotChart post-game analysis
@@ -314,6 +329,7 @@ export default function App() {
             {games.map((g) => {
               const isSelected = g.id === currentGame.id;
               const isWin = g.scoreMyTeam > g.scoreOpponent;
+              const isHome = (g.homeAway || 'home') === 'home';
               return (
                 <button
                   key={g.id}
@@ -323,7 +339,21 @@ export default function App() {
                       ? 'bg-white text-[#00205B] border-white shadow-sm scale-[1.02]'
                       : 'bg-white/10 text-blue-100 border-white/15 hover:bg-white/20'
                   }`}
+                  title={`${g.myTeamName} vs ${g.opponentName} (${isHome ? 'Local' : 'Visitante'})`}
                 >
+                  <span
+                    className={`text-[9px] px-1 py-0.2 rounded font-extrabold uppercase ${
+                      !isHome
+                        ? isSelected
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : 'bg-amber-400/30 text-amber-200 border border-amber-400/40'
+                        : isSelected
+                        ? 'bg-blue-100 text-[#00205B] border border-blue-200'
+                        : 'bg-blue-400/20 text-blue-200 border border-blue-300/30'
+                    }`}
+                  >
+                    {isHome ? 'LOC' : 'VIS'}
+                  </span>
                   <span>vs {g.opponentName}</span>
                   <span
                     className={`font-mono text-[11px] px-1.5 py-0.5 rounded font-extrabold ${
@@ -411,6 +441,7 @@ export default function App() {
               onCreateGame={handleCreateGame}
               onDeleteGame={handleDeleteGame}
               onImportBackup={handleImportBackup}
+              onUpdateGame={handleUpdateGameById}
             />
           </div>
         )}

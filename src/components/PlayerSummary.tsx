@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Game, ExcelRowStats } from '../types/basketball';
-import { Users, Award, TrendingUp, Search, Download } from 'lucide-react';
+import { Users, Award, TrendingUp, Search, Download, Home, Plane } from 'lucide-react';
 import { ClubSomisaLogo } from './ClubSomisaLogo';
 
 interface PlayerSummaryProps {
@@ -37,11 +37,17 @@ export const PlayerSummary: React.FC<PlayerSummaryProps> = ({
   onOpenExportModal 
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedVenue, setSelectedVenue] = useState<'all' | 'home' | 'away'>('all');
 
-  // Aggregate stats across all games for each player
+  const filteredGames = games.filter(g => {
+    if (selectedVenue !== 'all' && (g.homeAway || 'home') !== selectedVenue) return false;
+    return true;
+  });
+
+  // Aggregate stats across filtered games for each player
   const playerMap = new Map<string, AggregatedPlayer>();
 
-  games.forEach(g => {
+  filteredGames.forEach(g => {
     g.rows.forEach(r => {
       const key = r.playerName.trim().toUpperCase();
       if (!key || key === 'TOTALES') return;
@@ -125,12 +131,53 @@ export const PlayerSummary: React.FC<PlayerSummaryProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Promedios y estadísticas globales de la plantilla de Club SOMISA en la temporada ({games.length} partido(s))
+              Promedios y estadísticas globales de la plantilla de Club SOMISA ({filteredGames.length} de {games.length} partido(s){selectedVenue !== 'all' ? (selectedVenue === 'home' ? ' · Solo Local' : ' · Solo Visitante') : ''})
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Selector de Condición Local / Visitante */}
+          <div className="inline-flex items-center rounded-xl p-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+            <button
+              type="button"
+              onClick={() => setSelectedVenue('all')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedVenue === 'all'
+                  ? 'bg-white dark:bg-slate-700 text-[#00205B] dark:text-white shadow-xs'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedVenue('home')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedVenue === 'home'
+                  ? 'bg-[#00205B] text-white shadow-xs dark:bg-blue-600'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Filtrar estadísticas de jugadores jugando de Local"
+            >
+              <Home className="w-3.5 h-3.5" />
+              <span>Local</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setSelectedVenue('away')}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                selectedVenue === 'away'
+                  ? 'bg-amber-600 text-white shadow-xs dark:bg-amber-500 dark:text-slate-900'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+              }`}
+              title="Filtrar estadísticas de jugadores jugando de Visitante"
+            >
+              <Plane className="w-3.5 h-3.5" />
+              <span>Visitante</span>
+            </button>
+          </div>
+
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -138,7 +185,7 @@ export const PlayerSummary: React.FC<PlayerSummaryProps> = ({
               placeholder="Buscar por jugador o dorsal..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden w-60"
+              className="text-xs pl-9 pr-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 focus:outline-hidden w-56"
             />
           </div>
 

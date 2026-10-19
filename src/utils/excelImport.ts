@@ -9,6 +9,7 @@ export interface ParsedExcelGame {
   date: string;
   competition: string;
   season: string;
+  homeAway?: 'home' | 'away';
   scoreMyTeam: number;
   scoreOpponent: number;
   rows: ExcelRowStats[];
@@ -96,6 +97,7 @@ export function parseGridData(
   let season = '2026';
   let myTeamName = 'SOMISA (San Nicolas)';
   let opponentName = 'Rival';
+  let homeAway: 'home' | 'away' = 'home';
   let date = new Date().toISOString().split('T')[0];
 
   // 1. Scan top rows for Title and Team Names
@@ -115,12 +117,15 @@ export function parseGridData(
         if (teamA.toUpperCase().includes('SOMISA')) {
           myTeamName = teamA;
           opponentName = teamB;
+          homeAway = 'home';
         } else if (teamB.toUpperCase().includes('SOMISA')) {
           myTeamName = teamB;
           opponentName = teamA;
+          homeAway = 'away';
         } else {
           myTeamName = teamA;
           opponentName = teamB;
+          homeAway = 'home';
         }
       }
 
@@ -320,6 +325,7 @@ export function parseGridData(
     date,
     competition,
     season,
+    homeAway,
     scoreMyTeam: myTotals.pt,
     scoreOpponent: oppTotals.pt || 0,
     rows: somisaRows,
