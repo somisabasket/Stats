@@ -96,6 +96,12 @@ function githubPagesMultiTargetPlugin() {
         }
         if (fs.existsSync(path.join(rootDir, 'public', 'somisa_data.json'))) {
           fs.copyFileSync(path.join(rootDir, 'public', 'somisa_data.json'), path.join(rootDir, 'somisa_data.json'));
+          if (fs.existsSync(distDir)) {
+            fs.copyFileSync(path.join(rootDir, 'public', 'somisa_data.json'), path.join(distDir, 'somisa_data.json'));
+          }
+          if (fs.existsSync(docsDir)) {
+            fs.copyFileSync(path.join(rootDir, 'public', 'somisa_data.json'), path.join(docsDir, 'somisa_data.json'));
+          }
         }
         if (fs.existsSync(path.join(distDir, 'index.html'))) {
           fs.copyFileSync(path.join(distDir, 'index.html'), path.join(rootDir, '404.html'));
@@ -131,6 +137,22 @@ function devSavePlugin() {
                   fs.writeFileSync(tf, jsonStr, 'utf-8');
                 } catch {}
               }
+
+              // También actualizar src/utils/bundledGamesData.ts para sincronizar el código compilado de GitHub
+              const bundledPath = path.join(rootDir, 'src', 'utils', 'bundledGamesData.ts');
+              const tsCode = `import { Game, PlayerProfile } from "../types/basketball";\n\nexport const BUNDLED_SOMISA_DATA: {\n  appName?: string;\n  version?: string;\n  exportDate?: string;\n  totalGames?: number;\n  roster: PlayerProfile[];\n  games: Game[];\n} = ${jsonStr};\n`;
+              try {
+                fs.writeFileSync(bundledPath, tsCode, 'utf-8');
+              } catch {}
+
+              // Si existe la carpeta dist/, sincronizar dist/somisa_data.json
+              const distDir = path.join(rootDir, 'dist');
+              if (fs.existsSync(distDir)) {
+                try {
+                  fs.writeFileSync(path.join(distDir, 'somisa_data.json'), jsonStr, 'utf-8');
+                } catch {}
+              }
+
               res.setHeader('Content-Type', 'application/json');
               res.end(JSON.stringify({ success: true }));
             } catch (err: any) {

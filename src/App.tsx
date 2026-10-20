@@ -168,6 +168,8 @@ export default function App() {
   const handleCreateGame = (newGame: Game) => {
     setGames((prev) => {
       const next = [newGame, ...prev];
+      saveGames(next);
+      syncToLocalServer(next, roster);
       triggerAutoGitHubSync(next);
       return next;
     });
@@ -220,9 +222,15 @@ export default function App() {
       };
 
       setGames([newBlankGame]);
+      saveGames([newBlankGame]);
+      syncToLocalServer([newBlankGame], roster);
+      triggerAutoGitHubSync([newBlankGame]);
       setCurrentGameId(newBlankGame.id);
     } else {
       setGames(remaining);
+      saveGames(remaining);
+      syncToLocalServer(remaining, roster);
+      triggerAutoGitHubSync(remaining);
       if (currentGameId === gameId) {
         setCurrentGameId(remaining[0].id);
       }
@@ -232,6 +240,9 @@ export default function App() {
   const handleImportBackup = (importedGames: Game[]) => {
     const clean = deduplicateGamesList(importedGames);
     setGames(clean);
+    saveGames(clean);
+    syncToLocalServer(clean, roster);
+    triggerAutoGitHubSync(clean);
     if (clean.length > 0) {
       setCurrentGameId(clean[0].id);
     }
@@ -239,8 +250,9 @@ export default function App() {
 
   const handleSyncRosterToGames = (newRoster: PlayerProfile[]) => {
     setRoster(newRoster);
-    setGames((prevGames) =>
-      prevGames.map((g) => {
+    saveMasterRoster(newRoster);
+    setGames((prevGames) => {
+      const next = prevGames.map((g) => {
         const updatedRows = g.rows.map((row) => {
           const match = newRoster.find(
             (p) => p.name.trim().toUpperCase() === row.playerName.trim().toUpperCase()
@@ -254,19 +266,31 @@ export default function App() {
           }
           return row;
         });
-        return { ...g, rows: updatedRows };
-      })
-    );
+        return {
+          ...g,
+          rows: updatedRows,
+        };
+      });
+      saveGames(next);
+      syncToLocalServer(next, newRoster);
+      triggerAutoGitHubSync(next, newRoster);
+      return next;
+    });
   };
 
   const handleImportFullData = (imported: { games: Game[]; roster?: PlayerProfile[] }) => {
+    const updatedRoster = (imported.roster && imported.roster.length > 0) ? imported.roster : roster;
+    if (imported.roster && imported.roster.length > 0) {
+      setRoster(imported.roster);
+      saveMasterRoster(imported.roster);
+    }
     if (imported.games && imported.games.length > 0) {
       const clean = deduplicateGamesList(imported.games);
       setGames(clean);
+      saveGames(clean);
+      syncToLocalServer(clean, updatedRoster);
+      triggerAutoGitHubSync(clean, updatedRoster);
       setCurrentGameId(clean[0].id);
-    }
-    if (imported.roster && imported.roster.length > 0) {
-      setRoster(imported.roster);
     }
   };
 
@@ -290,6 +314,8 @@ export default function App() {
 
     setGames((prev) => {
       const next = deduplicateGamesList([newGame, ...prev]);
+      saveGames(next);
+      syncToLocalServer(next, roster);
       triggerAutoGitHubSync(next);
       return next;
     });

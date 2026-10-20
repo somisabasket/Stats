@@ -21,7 +21,8 @@ import {
   loadGitHubSyncConfig, 
   saveGitHubSyncConfig, 
   pushDataToGitHubRepo,
-  fetchRemoteSharedData
+  fetchRemoteSharedData,
+  syncToLocalServer
 } from '../utils/storage';
 
 interface GitHubExportModalProps {
@@ -77,6 +78,7 @@ export const GitHubExportModal: React.FC<GitHubExportModalProps> = ({
   const handleSyncToGitHubNow = async () => {
     setIsSyncing(true);
     setSyncResult(null);
+    await syncToLocalServer(games, roster);
     const res = await pushDataToGitHubRepo(syncConfig, games, roster);
     if (res.ok) {
       handleUpdateConfig({ lastSyncedAt: new Date().toLocaleString() });

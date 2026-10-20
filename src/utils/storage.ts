@@ -241,7 +241,16 @@ export async function pushDataToGitHubRepo(
   const jsonContent = JSON.stringify(payload, null, 2);
   // Encode UTF-8 string to Base64
   const base64Content = btoa(unescape(encodeURIComponent(jsonContent)));
-  const targetPaths = ['public/somisa_data.json', 'somisa_data.json', 'docs/somisa_data.json'];
+  const tsContent = `import { Game, PlayerProfile } from "../types/basketball";\n\nexport const BUNDLED_SOMISA_DATA: {\n  appName?: string;\n  version?: string;\n  exportDate?: string;\n  totalGames?: number;\n  roster: PlayerProfile[];\n  games: Game[];\n} = ${jsonContent};\n`;
+  const base64TsContent = btoa(unescape(encodeURIComponent(tsContent)));
+
+  const filesToPush = [
+    { path: 'public/somisa_data.json', content: base64Content },
+    { path: 'somisa_data.json', content: base64Content },
+    { path: 'docs/somisa_data.json', content: base64Content },
+    { path: 'src/utils/bundledGamesData.ts', content: base64TsContent }
+  ];
+
   const headers: Record<string, string> = {
     Accept: 'application/vnd.github+json',
     Authorization: `Bearer ${token.trim()}`,
@@ -251,9 +260,9 @@ export async function pushDataToGitHubRepo(
   let updatedCount = 0;
   let lastError = '';
 
-  for (const filePath of targetPaths) {
+  for (const item of filesToPush) {
     try {
-      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner.trim())}/${encodeURIComponent(repo.trim())}/contents/${filePath}`;
+      const apiUrl = `https://api.github.com/repos/${encodeURIComponent(owner.trim())}/${encodeURIComponent(repo.trim())}/contents/${item.path}`;
       // 1. Check if file already exists to get its SHA
       let sha: string | undefined;
       const getRes = await fetch(`${apiUrl}?ref=${encodeURIComponent(branch.trim() || 'main')}`, {
@@ -267,8 +276,8 @@ export async function pushDataToGitHubRepo(
 
       // 2. PUT updated file content
       const putBody: Record<string, any> = {
-        message: `Actualizar partidos Club SOMISA (${games.length} partidos)`,
-        content: base64Content,
+        message: `Actualizar datos oficiales Club SOMISA (${games.length} partidos)`,
+        content: item.content,
         branch: branch.trim() || 'main'
       };
       if (sha) {

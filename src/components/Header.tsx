@@ -117,15 +117,15 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           )}
 
-          {/* Respaldo GitHub */}
+          {/* Respaldo / Sincronización GitHub */}
           {onOpenGitHubModal && (
             <button
               onClick={onOpenGitHubModal}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors whitespace-nowrap"
-              title="Respaldo de base de datos JSON para subir a GitHub"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors whitespace-nowrap"
+              title="Sincronizar y respaldar todos los partidos con GitHub"
             >
-              <Github className="w-3.5 h-3.5" />
-              <span>GitHub</span>
+              <Github className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
+              <span>Sincronizar GitHub</span>
             </button>
           )}
 
