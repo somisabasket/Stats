@@ -87,11 +87,509 @@ function drawFooter(doc: jsPDF) {
   doc.text('Club SOMISA San Nicolás · Sistema Técnico Estadístico Oficial de Básquetbol (CABB / FBB / FIBA)', 148, 207, { align: 'center' });
 }
 
+function getMatchTacticalLeaders(rows: Game['rows']) {
+  if (!rows || rows.length === 0) return null;
+  const sortedPts = [...rows].sort((a, b) => (b.pt || 0) - (a.pt || 0));
+  const sortedVal = [...rows].sort((a, b) => (b.ptsTot || 0) - (a.ptsTot || 0));
+  const sortedReb = [...rows].sort((a, b) => (b.rt || 0) - (a.rt || 0));
+  const sortedAst = [...rows].sort((a, b) => (b.as || 0) - (a.as || 0));
+
+  return {
+    topScorer: sortedPts[0] || null,
+    topVal: sortedVal[0] || null,
+    topReb: sortedReb[0] || null,
+    topAst: sortedAst[0] || null
+  };
+}
+
+/**
+ * PÁGINA DE ANÁLISIS TÁCTICO INDIVIDUAL DEL PARTIDO:
+ * 1. Ficha Táctica Individual del Partido (Hero Cards & Marcador Oficial)
+ * 2. Los 4 Factores de la Victoria (Dean Oliver en este partido vs Rival)
+ * 3. Distribución y Origen de los Puntos de SOMISA en este partido (Dobles, Triples, TL)
+ * 4. Líderes Tácticos Individuales del Partido (SOMISA)
+ * 5. Síntesis Táctica y Balance Técnico del Encuentro
+ */
+export function drawTacticalMatchPage(
+  doc: jsPDF,
+  game: Game,
+  pageNum: number,
+  totalPages: number,
+  crestImg: HTMLImageElement | null
+): void {
+  const teamTotals = calculateTeamRowTotals(game.rows);
+  const factors = calculateFourFactors(teamTotals, game.opponentStats);
+
+  const singlePoss = (teamTotals.ti + teamTotals.i3p) + 0.44 * teamTotals.tli - teamTotals.ro + teamTotals.per || 1;
+  const oppFgaSingle = game.opponentStats ? game.opponentStats.ti + game.opponentStats.i3p : 0;
+  const oppPossSingle = game.opponentStats
+    ? (oppFgaSingle + 0.44 * game.opponentStats.tli - game.opponentStats.ro + game.opponentStats.per || singlePoss)
+    : singlePoss;
+  const singlePpp = Number((game.scoreMyTeam / singlePoss).toFixed(2));
+  const singleOppPpp = Number((game.scoreOpponent / oppPossSingle).toFixed(2));
+  const singleAstTo = teamTotals.per > 0 ? Number((teamTotals.as / teamTotals.per).toFixed(2)) : teamTotals.as;
+  const singleFgm = teamTotals.tc + teamTotals.c3p;
+  const singleAstPct = singleFgm > 0 ? Number(((teamTotals.as / singleFgm) * 100).toFixed(1)) : 0;
+
+  const pts2 = teamTotals.tc * 2;
+  const pts3 = teamTotals.c3p * 3;
+  const ptsFt = teamTotals.tlc;
+  const totalPts = teamTotals.pt || 1;
+
+  const pctPts2 = ((pts2 / totalPts) * 100).toFixed(1);
+  const pctPts3 = ((pts3 / totalPts) * 100).toFixed(1);
+  const pctPtsFt = ((ptsFt / totalPts) * 100).toFixed(1);
+
+  // Top header with official SOMISA branding
+  drawHeader(
+    doc,
+    `Ficha Táctica Individual · ${game.myTeamName} vs ${game.opponentName}`,
+    `Fecha: ${game.date} | Torneo: ${game.competition} | Condición: ${game.homeAway === 'home' ? 'Local' : 'Visitante'} | Temporada: ${game.season}`,
+    pageNum,
+    totalPages,
+    crestImg
+  );
+
+  // Score Badge in Top Header
+  doc.setFillColor(238, 243, 250);
+  doc.roundedRect(216, 4, 52, 16, 2, 2, 'F');
+  doc.setTextColor(0, 32, 91);
+  doc.setFontSize(13);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`${game.scoreMyTeam} - ${game.scoreOpponent}`, 242, 11, { align: 'center' });
+  doc.setFontSize(6.8);
+  doc.setFont('helvetica', 'bold');
+  const isWin = game.scoreMyTeam >= game.scoreOpponent;
+  doc.setTextColor(isWin ? 16 : 220, isWin ? 185 : 38, isWin ? 129 : 38);
+  doc.text(isWin ? 'VICTORIA SOMISA' : 'DERROTA SOMISA', 242, 16.5, { align: 'center' });
+
+  // =========================================================================
+  // SECCIÓN 1: FICHA TÁCTICA INDIVIDUAL DEL PARTIDO (4 HERO CARDS)
+  // =========================================================================
+  const cardW = 66;
+  const cardH = 21;
+  const cardY = 27;
+
+  // Card 1: Puntos SOMISA
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(10, cardY, cardW, cardH, 2.5, 2.5, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('PUNTOS SOMISA', 14, cardY + 5.5);
+  doc.setFontSize(14.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text(String(teamTotals.pt), 14, cardY + 13);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  const diffPts = game.scoreMyTeam - game.scoreOpponent;
+  doc.text(`vs ${game.scoreOpponent} (${game.opponentName.slice(0, 14)}) · Dif: ${diffPts > 0 ? '+' : ''}${diffPts}`, 14, cardY + 18);
+
+  // Card 2: Tiro Efectivo (eFG%)
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(80, cardY, cardW, cardH, 2.5, 2.5, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('TIRO EFECTIVO (eFG%)', 84, cardY + 5.5);
+  doc.setFontSize(14.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(217, 119, 6);
+  doc.text(`${factors.eFGPct}%`, 84, cardY + 13);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  const diffEfg = (factors.eFGPct - factors.oppEFGPct).toFixed(1);
+  doc.text(`Rival: ${factors.oppEFGPct}% · Ventaja: ${Number(diffEfg) > 0 ? '+' : ''}${diffEfg}%`, 84, cardY + 18);
+
+  // Card 3: Rebote Ofensivo (ORB%)
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(150, cardY, cardW, cardH, 2.5, 2.5, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('REBOTE OFENSIVO (ORB%)', 154, cardY + 5.5);
+  doc.setFontSize(14.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(5, 150, 105);
+  doc.text(`${factors.orbPct}%`, 154, cardY + 13);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Defensivo: ${factors.drbPct}% | ORB atrapados: ${teamTotals.ro}`, 154, cardY + 18);
+
+  // Card 4: Rating Neto Partido
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(220, cardY, cardW, cardH, 2.5, 2.5, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('RATING NETO PARTIDO (+/-)', 224, cardY + 5.5);
+  doc.setFontSize(14.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(factors.netRating >= 0 ? 16 : 220, factors.netRating >= 0 ? 185 : 38, factors.netRating >= 0 ? 129 : 38);
+  doc.text(factors.netRating > 0 ? `+${factors.netRating}` : String(factors.netRating), 224, cardY + 13);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Off: ${factors.offensiveRating} | Def: ${factors.defensiveRating} | Pace: ${factors.pace}`, 224, cardY + 18);
+
+  // =========================================================================
+  // SECCIÓN 2: LOS 4 FACTORES DE LA VICTORIA (DEAN OLIVER EN ESTE PARTIDO)
+  // =========================================================================
+  const sec2Y = 51;
+  doc.setFillColor(0, 32, 91);
+  doc.rect(10, sec2Y, 276, 6, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LOS 4 FACTORES DE LA VICTORIA (DEAN OLIVER EN ESTE PARTIDO)', 14, sec2Y + 4.2);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(219, 234, 254);
+  doc.text(`Ritmo: ${factors.pace} posesiones (40 min) · Eficiencia: ${singlePpp} PPP (SOMISA) vs ${singleOppPpp} PPP (Rival)`, 282, sec2Y + 4.2, { align: 'right' });
+
+  const factorTableY = sec2Y + 6.5;
+  const factorRows = [
+    {
+      factor: '1. Tiro Efectivo (eFG%)',
+      weight: '40% del resultado',
+      somisa: `${factors.eFGPct}%`,
+      rival: `${factors.oppEFGPct}%`,
+      diff: `${(factors.eFGPct - factors.oppEFGPct) > 0 ? '+' : ''}${(factors.eFGPct - factors.oppEFGPct).toFixed(1)}%`,
+      isAdv: factors.eFGPct >= factors.oppEFGPct,
+      desc: 'Pondera el 50% adicional del triple: (2PC + 1.5*3PC) / TCI.'
+    },
+    {
+      factor: '2. Cuidado de Balón (ToV%)',
+      weight: '25% del resultado',
+      somisa: `${factors.tovPct}%`,
+      rival: `${factors.oppTovPct}%`,
+      diff: `${(factors.tovPct - factors.oppTovPct) > 0 ? '+' : ''}${(factors.tovPct - factors.oppTovPct).toFixed(1)}%`,
+      isAdv: factors.tovPct <= factors.oppTovPct,
+      desc: '% de posesiones finalizadas en pérdida de posesión.'
+    },
+    {
+      factor: '3. Rebote Ofensivo (ORB%)',
+      weight: '20% del resultado',
+      somisa: `${factors.orbPct}%`,
+      rival: `${100 - factors.drbPct}%`,
+      diff: `${(factors.orbPct - (100 - factors.drbPct)) > 0 ? '+' : ''}${(factors.orbPct - (100 - factors.drbPct)).toFixed(1)}%`,
+      isAdv: factors.orbPct >= (100 - factors.drbPct),
+      desc: 'Segundas oportunidades: rebotes ofensivos disponibles atrapados.'
+    },
+    {
+      factor: '4. Frecuencia de Libres (FTr)',
+      weight: '15% del resultado',
+      somisa: `${factors.ftRate}%`,
+      rival: `${factors.oppFtRate}%`,
+      diff: `${(factors.ftRate - factors.oppFtRate) > 0 ? '+' : ''}${(factors.ftRate - factors.oppFtRate).toFixed(1)}%`,
+      isAdv: factors.ftRate >= factors.oppFtRate,
+      desc: 'Capacidad de atacar el aro y conseguir tiros libres por tiro de campo.'
+    }
+  ];
+
+  doc.setFillColor(241, 245, 249);
+  doc.rect(10, factorTableY, 276, 5.5, 'F');
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Factor / Fundamento', 14, factorTableY + 4);
+  doc.text('Importancia', 75, factorTableY + 4);
+  doc.text('SOMISA', 125, factorTableY + 4, { align: 'center' });
+  doc.text(`Rival (${game.opponentName.slice(0, 16)})`, 160, factorTableY + 4, { align: 'center' });
+  doc.text('Diferencia', 195, factorTableY + 4, { align: 'center' });
+  doc.text('Definición e Impacto Táctico Clave', 222, factorTableY + 4);
+
+  let fY = factorTableY + 6;
+  doc.setFont('helvetica', 'normal');
+  factorRows.forEach((fr, idx) => {
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(10, fY - 3.5, 276, 6.8, 'F');
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.setFontSize(7.5);
+    doc.text(fr.factor, 14, fY + 1.2);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(7.2);
+    doc.text(fr.weight, 75, fY + 1.2);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(15, 23, 42);
+    doc.text(fr.somisa, 125, fY + 1.2, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(71, 85, 105);
+    doc.text(fr.rival, 160, fY + 1.2, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    if (fr.isAdv) {
+      doc.setTextColor(16, 185, 129);
+    } else {
+      doc.setTextColor(220, 38, 38);
+    }
+    doc.text(fr.diff, 195, fY + 1.2, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.setFontSize(6.8);
+    doc.text(fr.desc, 222, fY + 1.2);
+
+    fY += 6.8;
+  });
+
+  // =========================================================================
+  // SECCIÓN 3: DISTRIBUCIÓN Y ORIGEN DE LOS PUNTOS DE SOMISA EN ESTE PARTIDO
+  // =========================================================================
+  const sec3Y = 93;
+  doc.setFillColor(0, 32, 91);
+  doc.rect(10, sec3Y, 276, 6, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DISTRIBUCIÓN Y ORIGEN DE LOS PUNTOS DE SOMISA EN ESTE PARTIDO', 14, sec3Y + 4.2);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(219, 234, 254);
+  const totalFgAttempts = teamTotals.ti + teamTotals.i3p;
+  const totalFgPct = totalFgAttempts > 0 ? (((teamTotals.tc + teamTotals.c3p) / totalFgAttempts) * 100).toFixed(1) : '0';
+  doc.text(`Total: ${teamTotals.pt} pts | True Shooting: ${teamTotals.tsPct}% | Tiros Campo: ${teamTotals.tc + teamTotals.c3p}/${totalFgAttempts} (${totalFgPct}%)`, 282, sec3Y + 4.2, { align: 'right' });
+
+  const card3W = 89;
+  const card3H = 22;
+  const card3Y = sec3Y + 7;
+
+  // Card 3A: Dobles (2P)
+  doc.setFillColor(239, 246, 255);
+  doc.setDrawColor(191, 219, 254);
+  doc.roundedRect(10, card3Y, card3W, card3H, 2, 2, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 64, 175);
+  doc.text('TIROS DE 2 PUNTOS (DOBLES)', 14, card3Y + 5.5);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text(`${pts2} pts`, 14, card3Y + 13);
+  doc.setFontSize(7.2);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`${pctPts2}% del total · ${teamTotals.tc}/${teamTotals.ti} convertidos (${teamTotals.tiPct}% acierto)`, 14, card3Y + 18.5);
+
+  // Card 3B: Triples (3P)
+  doc.setFillColor(254, 243, 199);
+  doc.setDrawColor(253, 230, 138);
+  doc.roundedRect(103.5, card3Y, card3W, card3H, 2, 2, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(180, 83, 9);
+  doc.text('TIROS DE 3 PUNTOS (TRIPLES)', 107.5, card3Y + 5.5);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(180, 83, 9);
+  doc.text(`${pts3} pts`, 107.5, card3Y + 13);
+  doc.setFontSize(7.2);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`${pctPts3}% del total · ${teamTotals.c3p}/${teamTotals.i3p} convertidos (${teamTotals.pct3p}% acierto)`, 107.5, card3Y + 18.5);
+
+  // Card 3C: Tiros Libres (TL)
+  doc.setFillColor(236, 253, 245);
+  doc.setDrawColor(167, 243, 208);
+  doc.roundedRect(197, card3Y, card3W, card3H, 2, 2, 'FD');
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(4, 120, 87);
+  doc.text('TIROS LIBRES (TL)', 201, card3Y + 5.5);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(4, 120, 87);
+  doc.text(`${ptsFt} pts`, 201, card3Y + 13);
+  doc.setFontSize(7.2);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`${pctPtsFt}% del total · ${teamTotals.tlc}/${teamTotals.tli} convertidos (${teamTotals.tlPct}% acierto)`, 201, card3Y + 18.5);
+
+  // Horizontal Point Origin Stacked Bar
+  const barY = card3Y + 24.5;
+  const barW = 276;
+  const barH = 5;
+
+  const w2 = Math.max(0, (pts2 / totalPts) * barW);
+  const w3 = Math.max(0, (pts3 / totalPts) * barW);
+  const wFt = Math.max(0, barW - w2 - w3);
+
+  // Segment 2P (Pantone 281 C Blue)
+  doc.setFillColor(0, 32, 91);
+  doc.rect(10, barY, w2, barH, 'F');
+  // Segment 3P (Amber)
+  doc.setFillColor(217, 119, 6);
+  doc.rect(10 + w2, barY, w3, barH, 'F');
+  // Segment TL (Emerald)
+  doc.setFillColor(5, 150, 105);
+  doc.rect(10 + w2 + w3, barY, wFt, barH, 'F');
+
+  // Legend under bar
+  doc.setFontSize(6.8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text(`■ Dobles (2P): ${pts2} pts (${pctPts2}%)`, 14, barY + 8.8);
+  doc.setTextColor(180, 83, 9);
+  doc.text(`■ Triples (3P): ${pts3} pts (${pctPts3}%)`, 105, barY + 8.8);
+  doc.setTextColor(4, 120, 87);
+  doc.text(`■ Tiros Libres (TL): ${ptsFt} pts (${pctPtsFt}%)`, 198, barY + 8.8);
+
+  // =========================================================================
+  // SECCIÓN 4: LÍDERES TÁCTICOS INDIVIDUALES DEL PARTIDO (SOMISA)
+  // =========================================================================
+  const sec4Y = 142;
+  doc.setFillColor(0, 32, 91);
+  doc.rect(10, sec4Y, 276, 5.5, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.text('LÍDERES TÁCTICOS INDIVIDUALES DEL PARTIDO (SOMISA)', 14, sec4Y + 3.8);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(219, 234, 254);
+  doc.text('Rendimiento individual destacado del plantel en este encuentro', 282, sec4Y + 3.8, { align: 'right' });
+
+  const leadCards = getMatchTacticalLeaders(game.rows);
+  const leadCardY = sec4Y + 7;
+  const leadCardH = 24;
+
+  if (leadCards) {
+    const { topScorer, topVal, topReb, topAst } = leadCards;
+
+    // Leader 1: Scorer
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(10, leadCardY, cardW, leadCardH, 2, 2, 'FD');
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('MÁXIMO ANOTADOR', 14, leadCardY + 4.5);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.text(topScorer ? `${topScorer.playerName} (#${topScorer.playerNumber ?? '-'})` : '-', 14, leadCardY + 10);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(230, 81, 0);
+    doc.text(topScorer ? `${topScorer.pt} PTS` : '0 PTS', 14, leadCardY + 17);
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(topScorer ? `2P: ${topScorer.tc}/${topScorer.ti} | 3P: ${topScorer.c3p}/${topScorer.i3p} | TL: ${topScorer.tlc}/${topScorer.tli}` : '-', 14, leadCardY + 21.5);
+
+    // Leader 2: Valuation
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(80, leadCardY, cardW, leadCardH, 2, 2, 'FD');
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('MÁXIMA VALORACIÓN FIBA', 84, leadCardY + 4.5);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.text(topVal ? `${topVal.playerName} (#${topVal.playerNumber ?? '-'})` : '-', 84, leadCardY + 10);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(5, 150, 105);
+    doc.text(topVal ? `${topVal.ptsTot} VAL` : '0 VAL', 84, leadCardY + 17);
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(topVal ? `${topVal.min} MIN | ${topVal.pt} PTS | ${topVal.rt} REB | ${topVal.as} AST` : '-', 84, leadCardY + 21.5);
+
+    // Leader 3: Rebounds
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(150, leadCardY, cardW, leadCardH, 2, 2, 'FD');
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('LÍDER EN REBOTES', 154, leadCardY + 4.5);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.text(topReb ? `${topReb.playerName} (#${topReb.playerNumber ?? '-'})` : '-', 154, leadCardY + 10);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(30, 64, 175);
+    doc.text(topReb ? `${topReb.rt} REBOTES` : '0 REB', 154, leadCardY + 17);
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(topReb ? `Defensivos: ${topReb.rd} | Ofensivos: ${topReb.ro}` : '-', 154, leadCardY + 21.5);
+
+    // Leader 4: Assists
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(220, leadCardY, cardW, leadCardH, 2, 2, 'FD');
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(100, 116, 139);
+    doc.text('LÍDER EN ASISTENCIAS', 224, leadCardY + 4.5);
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.text(topAst ? `${topAst.playerName} (#${topAst.playerNumber ?? '-'})` : '-', 224, leadCardY + 10);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(124, 58, 237);
+    doc.text(topAst ? `${topAst.as} ASISTENCIAS` : '0 AST', 224, leadCardY + 17);
+    doc.setFontSize(6.8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 116, 139);
+    doc.text(topAst ? `Recuperos: ${topAst.rec} | Pérdidas: ${topAst.per} | ${topAst.min} MIN` : '-', 224, leadCardY + 21.5);
+  }
+
+  // =========================================================================
+  // SECCIÓN 5: SÍNTESIS TÁCTICA & CLAVES DE EFICIENCIA
+  // =========================================================================
+  const sec5Y = 175.5;
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(10, sec5Y, 276, 22.5, 2, 2, 'FD');
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text('SÍNTESIS TÁCTICA Y BALANCE TÉCNICO DEL PARTIDO (STAFF SOMISA)', 14, sec5Y + 5);
+
+  doc.setFontSize(6.8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(30, 41, 59);
+  doc.text(
+    `• Ritmo & Circulación: Pace estimado de ${factors.pace} posesiones a 40 minutos. Relación Asistencias/Pérdidas (AST/PER) de ${singleAstTo} con ${singleAstPct}% de canastas asistidas (${teamTotals.as} asistencias en ${singleFgm} conversiones).`,
+    14,
+    sec5Y + 10
+  );
+  doc.text(
+    `• Factores de Victoria: eFG% SOMISA ${factors.eFGPct}% vs ${factors.oppEFGPct}% Rival | Pérdidas (ToV%): ${factors.tovPct}% | Rebote Ofensivo (ORB%): ${factors.orbPct}% (${teamTotals.ro} segundas opciones) | Frecuencia de TL (FTr): ${factors.ftRate}%.`,
+    14,
+    sec5Y + 14.5
+  );
+  doc.text(
+    `• Marcador y Eficiencia Neta: ${game.scoreMyTeam} - ${game.scoreOpponent} (Diferencial: ${diffPts > 0 ? '+' : ''}${diffPts} pts). Rating Ofensivo: ${factors.offensiveRating} (${singlePpp} PPP) | Rating Defensivo: ${factors.defensiveRating} (${singleOppPpp} Opp PPP) | Rating Neto: ${factors.netRating > 0 ? '+' : ''}${factors.netRating} pts/100 posesiones.`,
+    14,
+    sec5Y + 19
+  );
+
+  drawFooter(doc);
+}
+
 /**
  * EXPORTACIÓN COMPLETA (TODOS LOS APARTADOS):
  * Página 1: Planilla Oficial de Partido (Box Score)
- * Página 2: Resumen del Equipo & 4 Factores de Dean Oliver
- * Página 3: Resumen Individual de la Plantilla (Promedios y Totales)
+ * Página 2: Ficha Táctica Individual, 4 Factores de Dean Oliver & Distribución de Puntos
+ * Página 3: Resumen Individual de la Plantilla (Promedios y Totales de Temporada)
  */
 export async function exportComprehensivePdf(game: Game, allGames: Game[] = [game]): Promise<void> {
   const crestImg = await loadCrestImage();
@@ -102,7 +600,6 @@ export async function exportComprehensivePdf(game: Game, allGames: Game[] = [gam
   });
 
   const teamTotals = calculateTeamRowTotals(game.rows);
-  const factors = calculateFourFactors(teamTotals, game.opponentStats);
   const aggPlayers = computeAggregatedPlayers(allGames);
 
   // =========================================================================
@@ -225,264 +722,10 @@ export async function exportComprehensivePdf(game: Game, allGames: Game[] = [gam
   drawFooter(doc);
 
   // =========================================================================
-  // PÁGINA 2: RESUMEN DEL EQUIPO, EFICIENCIA AVANZADA & 4 FACTORES
+  // PÁGINA 2: FICHA TÁCTICA INDIVIDUAL, 4 FACTORES DE DEAN OLIVER & DISTRIBUCIÓN
   // =========================================================================
   doc.addPage('a4', 'landscape');
-  drawHeader(
-    doc,
-    'Resumen Colectivo, Eficiencia Avanzada & 4 Factores (Dean Oliver)',
-    `Evaluación táctica de posesiones, ORtg, DRtg, Pace y balance de juego vs ${game.opponentName}`,
-    2,
-    3,
-    crestImg
-  );
-
-  const singlePoss = (teamTotals.ti + teamTotals.i3p) + 0.44 * teamTotals.tli - teamTotals.ro + teamTotals.per || 1;
-  const oppFgaSingle = game.opponentStats ? game.opponentStats.ti + game.opponentStats.i3p : 0;
-  const oppPossSingle = game.opponentStats
-    ? (oppFgaSingle + 0.44 * game.opponentStats.tli - game.opponentStats.ro + game.opponentStats.per || singlePoss)
-    : singlePoss;
-  const singlePpp = Number((game.scoreMyTeam / singlePoss).toFixed(2));
-  const singleOppPpp = Number((game.scoreOpponent / oppPossSingle).toFixed(2));
-  const singleAstTo = teamTotals.per > 0 ? Number((teamTotals.as / teamTotals.per).toFixed(2)) : teamTotals.as;
-  const singleFgm = teamTotals.tc + teamTotals.c3p;
-  const singleAstPct = singleFgm > 0 ? Number(((teamTotals.as / singleFgm) * 100).toFixed(1)) : 0;
-
-  // 4 Top Cards
-  const cardW = 66;
-  const cardH = 26;
-  const cardY = 30;
-
-  // Card 1: Offensive Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(10, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('OFFENSIVE RATING (ORtg)', 14, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 32, 91);
-  doc.text(`${factors.offensiveRating} pts/100`, 14, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`PPP: ${singlePpp} | TS%: ${teamTotals.tsPct}%`, 14, cardY + 22.5);
-
-  // Card 2: Defensive Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(80, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('DEFENSIVE RATING (DRtg)', 84, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 64, 175);
-  doc.text(`${factors.defensiveRating} pts/100`, 84, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Opp PPP: ${singleOppPpp} | Rival: ${game.scoreOpponent} pts`, 84, cardY + 22.5);
-
-  // Card 3: Net Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(150, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('NET RATING (+/- NETO)', 154, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(factors.netRating >= 0 ? 16 : 239, factors.netRating >= 0 ? 185 : 68, factors.netRating >= 0 ? 129 : 68);
-  doc.text(factors.netRating > 0 ? `+${factors.netRating}` : String(factors.netRating), 154, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Resultado: ${game.scoreMyTeam} - ${game.scoreOpponent}`, 154, cardY + 22.5);
-
-  // Card 4: Posesiones (Pace)
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(220, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('RITMO / PACE (40 MIN)', 224, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(230, 81, 0);
-  doc.text(`${factors.pace} pos`, 224, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`AST/PER: ${singleAstTo} | AST%: ${singleAstPct}%`, 224, cardY + 22.5);
-
-  // Four Factors Section Header
-  doc.setFillColor(0, 32, 91);
-  doc.rect(10, 62, 276, 7, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('ANÁLISIS DE LOS 4 FACTORES DE LA VICTORIA (DEAN OLIVER)', 14, 67);
-
-  const factorTableY = 71;
-  const factorRows = [
-    {
-      factor: '1. Tiro Efectivo (eFG%)',
-      weight: '40% del resultado',
-      somisa: `${factors.eFGPct}%`,
-      rival: `${factors.oppEFGPct}%`,
-      diff: `${(factors.eFGPct - factors.oppEFGPct).toFixed(1)}%`,
-      desc: 'Mide la efectividad ponderada de tiros dobles y triples.'
-    },
-    {
-      factor: '2. Cuidado de Balón (ToV%)',
-      weight: '25% del resultado',
-      somisa: `${factors.tovPct}%`,
-      rival: `${factors.oppTovPct}%`,
-      diff: `${(factors.tovPct - factors.oppTovPct).toFixed(1)}%`,
-      desc: 'Porcentaje de posesiones que terminan en pérdida de balón.'
-    },
-    {
-      factor: '3. Rebote Ofensivo (ORB%)',
-      weight: '20% del resultado',
-      somisa: `${factors.orbPct}%`,
-      rival: `${100 - factors.drbPct}%`,
-      diff: `${(factors.orbPct - (100 - factors.drbPct)).toFixed(1)}%`,
-      desc: 'Porcentaje de rebotes ofensivos disponibles capturados.'
-    },
-    {
-      factor: '4. Frecuencia de Libres (FTr)',
-      weight: '15% del resultado',
-      somisa: `${factors.ftRate}%`,
-      rival: `${factors.oppFtRate}%`,
-      diff: `${(factors.ftRate - factors.oppFtRate).toFixed(1)}%`,
-      desc: 'Capacidad de conseguir tiros libres por cada tiro de campo intentado.'
-    }
-  ];
-
-  // Factors Table Header
-  doc.setFillColor(241, 245, 249);
-  doc.rect(10, factorTableY, 276, 7, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Factor / Fundamento', 14, factorTableY + 5);
-  doc.text('Importancia', 75, factorTableY + 5);
-  doc.text('SOMISA', 125, factorTableY + 5, { align: 'center' });
-  doc.text('Rival', 160, factorTableY + 5, { align: 'center' });
-  doc.text('Diferencia', 195, factorTableY + 5, { align: 'center' });
-  doc.text('Definición e Impacto', 225, factorTableY + 5);
-
-  let fY = factorTableY + 8;
-  doc.setFont('helvetica', 'normal');
-  factorRows.forEach((fr, idx) => {
-    if (idx % 2 === 1) {
-      doc.setFillColor(248, 250, 252);
-      doc.rect(10, fY - 4, 276, 9, 'F');
-    }
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 32, 91);
-    doc.text(fr.factor, 14, fY + 2);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(fr.weight, 75, fY + 2);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(fr.somisa, 125, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text(fr.rival, 160, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(fr.diff, 195, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7.5);
-    doc.text(fr.desc, 225, fY + 2);
-    doc.setFontSize(8.5);
-
-    fY += 9;
-  });
-
-  // Points Breakdown & Advanced Efficiency Box
-  const pBreakY = 114;
-  doc.setFillColor(0, 32, 91);
-  doc.rect(10, pBreakY, 276, 6.5, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('DESGLOSE DE PUNTOS, TIRO REAL (TS%) Y EFICIENCIA AVANZADA ACUMULADA DE TEMPORADA', 14, pBreakY + 4.5);
-
-  const pts2 = teamTotals.tc * 2;
-  const pts3 = teamTotals.c3p * 3;
-  const ptsFt = teamTotals.tlc;
-  const totalPts = teamTotals.pt || 1;
-
-  const pctPts2 = ((pts2 / totalPts) * 100).toFixed(1);
-  const pctPts3 = ((pts3 / totalPts) * 100).toFixed(1);
-  const pctPtsFt = ((ptsFt / totalPts) * 100).toFixed(1);
-  const seasonAdv = computeAggregatedTeamTotals(allGames);
-
-  doc.setFillColor(248, 250, 252);
-  doc.rect(10, pBreakY + 7, 276, 26, 'F');
-
-  doc.setFontSize(8);
-  doc.setTextColor(15, 23, 42);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`• Desglose Partido: Dobles (2P): ${pts2} pts (${pctPts2}% | ${teamTotals.tc}/${teamTotals.ti} - ${teamTotals.tiPct}%) | Triples (3P): ${pts3} pts (${pctPts3}% | ${teamTotals.c3p}/${teamTotals.i3p} - ${teamTotals.pct3p}%) | Libres (TL): ${ptsFt} pts (${pctPtsFt}% | ${teamTotals.tlc}/${teamTotals.tli} - ${teamTotals.tlPct}%)`, 14, pBreakY + 13);
-  doc.text(`• Eficiencia Partido: ORtg: ${factors.offensiveRating} (${singlePpp} PPP) | DRtg: ${factors.defensiveRating} (${singleOppPpp} Opp PPP) | NetRtg: ${factors.netRating > 0 ? '+' : ''}${factors.netRating} | Pace: ${factors.pace} pos | TS%: ${teamTotals.tsPct}% | AST/PER: ${singleAstTo} (AST%: ${singleAstPct}%)`, 14, pBreakY + 19.5);
-  doc.setTextColor(0, 32, 91);
-  doc.text(`• Acumulado Muestra (${allGames.length} PJ | ${seasonAdv.wins}V-${seasonAdv.losses}D): ORtg Global: ${seasonAdv.offensiveRating} (${seasonAdv.pointsPerPossession} PPP) | DRtg Global: ${seasonAdv.defensiveRating} | NetRtg: ${seasonAdv.netRating > 0 ? '+' : ''}${seasonAdv.netRating} | Pace: ${seasonAdv.pace} | TS%: ${seasonAdv.trueShootingPct}% | eFG%: ${seasonAdv.eFGPct}%`, 14, pBreakY + 26);
-  doc.setTextColor(100, 116, 139);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`• Control y 4 Factores Globales: AST/PER: ${seasonAdv.assistToTurnoverRatio} | Canastas Asistidas: ${seasonAdv.assistedFGPct}% | ToV%: ${seasonAdv.tovPct}% (Rival: ${seasonAdv.oppTovPct}%) | ORB%: ${seasonAdv.orbPct}% | FTr: ${seasonAdv.ftRate}%`, 14, pBreakY + 31.5);
-
-  // Mini Table of Match Evolution on Page 2
-  const evoY = pBreakY + 36;
-  doc.setFillColor(241, 245, 249);
-  doc.rect(10, evoY, 276, 5.5, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(7.2);
-  doc.setFont('helvetica', 'bold');
-  const evoCols = [12, 34, 85, 138, 160, 182, 202, 222, 242, 260, 276];
-  const evoHeaders = ['Fecha', 'Rival', 'Competencia', 'Cond.', 'Resultado', 'Pace', 'ORtg', 'DRtg', 'NetRtg', 'eFG%', 'TS%'];
-  evoHeaders.forEach((h, idx) => {
-    doc.text(h, evoCols[idx], evoY + 3.8, { align: idx <= 2 ? 'left' : 'center' });
-  });
-
-  let eRowY = evoY + 9;
-  doc.setFont('helvetica', 'normal');
-  allGames.slice(0, 7).forEach((g, idx) => {
-    if (idx % 2 === 1) {
-      doc.setFillColor(248, 250, 252);
-      doc.rect(10, eRowY - 3.5, 276, 5, 'F');
-    }
-    const rTot = calculateTeamRowTotals(g.rows);
-    const f = calculateFourFactors(rTot, g.opponentStats);
-    doc.setTextColor(30, 41, 59);
-    doc.text(g.date, evoCols[0], eRowY);
-    doc.setFont('helvetica', 'bold');
-    doc.text(g.opponentName.slice(0, 22), evoCols[1], eRowY);
-    doc.setFont('helvetica', 'normal');
-    doc.text((g.competition || '').slice(0, 24), evoCols[2], eRowY);
-    doc.text(g.homeAway === 'home' ? 'Local' : 'Visit.', evoCols[3], eRowY, { align: 'center' });
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${g.scoreMyTeam}-${g.scoreOpponent}`, evoCols[4], eRowY, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.text(String(f.pace), evoCols[5], eRowY, { align: 'center' });
-    doc.text(String(f.offensiveRating), evoCols[6], eRowY, { align: 'center' });
-    doc.text(String(f.defensiveRating), evoCols[7], eRowY, { align: 'center' });
-    doc.setFont('helvetica', 'bold');
-    doc.text(f.netRating > 0 ? `+${f.netRating}` : String(f.netRating), evoCols[8], eRowY, { align: 'center' });
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${f.eFGPct}%`, evoCols[9], eRowY, { align: 'center' });
-    doc.text(`${rTot.tsPct}%`, evoCols[10], eRowY, { align: 'center' });
-    eRowY += 5;
-  });
-
-  drawFooter(doc);
+  drawTacticalMatchPage(doc, game, 2, 3, crestImg);
 
   // =========================================================================
   // PÁGINA 3: RESUMEN INDIVIDUAL DE LA PLANTILLA (TEMPORADA)
@@ -577,7 +820,7 @@ export async function exportGameToPdf(game: Game, allGames: Game[] = [game]): Pr
 }
 
 /**
- * EXPORTACIÓN INDIVIDUAL: Solo Resumen del Equipo, Eficiencia Avanzada & 4 Factores
+ * EXPORTACIÓN INDIVIDUAL: Ficha Táctica Individual, 4 Factores de Dean Oliver & Distribución de Puntos
  */
 export async function exportTeamSummaryPdf(game: Game): Promise<void> {
   const crestImg = await loadCrestImage();
@@ -587,157 +830,9 @@ export async function exportTeamSummaryPdf(game: Game): Promise<void> {
     format: 'a4'
   });
 
-  const teamTotals = calculateTeamRowTotals(game.rows);
-  const factors = calculateFourFactors(teamTotals, game.opponentStats);
-  const singlePoss = (teamTotals.ti + teamTotals.i3p) + 0.44 * teamTotals.tli - teamTotals.ro + teamTotals.per || 1;
-  const oppFgaSingle = game.opponentStats ? game.opponentStats.ti + game.opponentStats.i3p : 0;
-  const oppPossSingle = game.opponentStats
-    ? (oppFgaSingle + 0.44 * game.opponentStats.tli - game.opponentStats.ro + game.opponentStats.per || singlePoss)
-    : singlePoss;
-  const singlePpp = Number((game.scoreMyTeam / singlePoss).toFixed(2));
-  const singleOppPpp = Number((game.scoreOpponent / oppPossSingle).toFixed(2));
-  const singleAstTo = teamTotals.per > 0 ? Number((teamTotals.as / teamTotals.per).toFixed(2)) : teamTotals.as;
-  const singleFgm = teamTotals.tc + teamTotals.c3p;
-  const singleAstPct = singleFgm > 0 ? Number(((teamTotals.as / singleFgm) * 100).toFixed(1)) : 0;
+  drawTacticalMatchPage(doc, game, 1, 1, crestImg);
 
-  drawHeader(
-    doc,
-    'Resumen Colectivo del Equipo, Eficiencia Avanzada & 4 Factores',
-    `Evaluación táctica de posesiones, ORtg, DRtg, Pace y balance de juego vs ${game.opponentName} (${game.date})`,
-    1,
-    1,
-    crestImg
-  );
-
-  const cardW = 66;
-  const cardH = 26;
-  const cardY = 32;
-
-  // Card 1: Off Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(10, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('OFFENSIVE RATING (ORtg)', 14, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 32, 91);
-  doc.text(`${factors.offensiveRating} pts/100`, 14, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`PPP: ${singlePpp} | TS%: ${teamTotals.tsPct}%`, 14, cardY + 22.5);
-
-  // Card 2: Def Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(80, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('DEFENSIVE RATING (DRtg)', 84, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 64, 175);
-  doc.text(`${factors.defensiveRating} pts/100`, 84, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Opp PPP: ${singleOppPpp} | Rival: ${game.scoreOpponent} pts`, 84, cardY + 22.5);
-
-  // Card 3: Net Rating
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(150, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('NET RATING (+/-)', 154, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(factors.netRating >= 0 ? 16 : 239, factors.netRating >= 0 ? 185 : 68, factors.netRating >= 0 ? 129 : 68);
-  doc.text(factors.netRating > 0 ? `+${factors.netRating}` : String(factors.netRating), 154, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`Marcador: ${game.scoreMyTeam} - ${game.scoreOpponent}`, 154, cardY + 22.5);
-
-  // Card 4: Pace
-  doc.setFillColor(248, 250, 252);
-  doc.roundedRect(220, cardY, cardW, cardH, 3, 3, 'FD');
-  doc.setFontSize(8);
-  doc.setTextColor(100, 116, 139);
-  doc.text('RITMO / POSESIONES (PACE)', 224, cardY + 7);
-  doc.setFontSize(17);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(230, 81, 0);
-  doc.text(`${factors.pace} pos`, 224, cardY + 16);
-  doc.setFontSize(8);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(100, 116, 139);
-  doc.text(`AST/PER: ${singleAstTo} | AST%: ${singleAstPct}%`, 224, cardY + 22.5);
-
-  // Four Factors Table
-  doc.setFillColor(0, 32, 91);
-  doc.rect(10, 65, 276, 7, 'F');
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('ANÁLISIS DE LOS 4 FACTORES DE LA VICTORIA (DEAN OLIVER)', 14, 70);
-
-  const factorTableY = 74;
-  const factorRows = [
-    { factor: '1. Tiro Efectivo (eFG%)', weight: '40% del resultado', somisa: `${factors.eFGPct}%`, rival: `${factors.oppEFGPct}%`, diff: `${(factors.eFGPct - factors.oppEFGPct).toFixed(1)}%`, desc: 'Efectividad ponderada de campo.' },
-    { factor: '2. Cuidado de Balón (ToV%)', weight: '25% del resultado', somisa: `${factors.tovPct}%`, rival: `${factors.oppTovPct}%`, diff: `${(factors.tovPct - factors.oppTovPct).toFixed(1)}%`, desc: '% posesiones perdidas.' },
-    { factor: '3. Rebote Ofensivo (ORB%)', weight: '20% del resultado', somisa: `${factors.orbPct}%`, rival: `${100 - factors.drbPct}%`, diff: `${(factors.orbPct - (100 - factors.drbPct)).toFixed(1)}%`, desc: '% rebotes ofensivos disponibles.' },
-    { factor: '4. Frecuencia de Libres (FTr)', weight: '15% del resultado', somisa: `${factors.ftRate}%`, rival: `${factors.oppFtRate}%`, diff: `${(factors.ftRate - factors.oppFtRate).toFixed(1)}%`, desc: 'Tiros libres por tiro de campo.' }
-  ];
-
-  doc.setFillColor(241, 245, 249);
-  doc.rect(10, factorTableY, 276, 7, 'F');
-  doc.setTextColor(15, 23, 42);
-  doc.setFontSize(8.5);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Factor / Fundamento', 14, factorTableY + 5);
-  doc.text('Importancia', 75, factorTableY + 5);
-  doc.text('SOMISA', 125, factorTableY + 5, { align: 'center' });
-  doc.text('Rival', 160, factorTableY + 5, { align: 'center' });
-  doc.text('Diferencia', 195, factorTableY + 5, { align: 'center' });
-  doc.text('Definición e Impacto', 225, factorTableY + 5);
-
-  let fY = factorTableY + 8;
-  doc.setFont('helvetica', 'normal');
-  factorRows.forEach((fr, idx) => {
-    if (idx % 2 === 1) {
-      doc.setFillColor(248, 250, 252);
-      doc.rect(10, fY - 4, 276, 9, 'F');
-    }
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(0, 32, 91);
-    doc.text(fr.factor, 14, fY + 2);
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.text(fr.weight, 75, fY + 2);
-
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(15, 23, 42);
-    doc.text(fr.somisa, 125, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(71, 85, 105);
-    doc.text(fr.rival, 160, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'bold');
-    doc.text(fr.diff, 195, fY + 2, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(100, 116, 139);
-    doc.setFontSize(7.5);
-    doc.text(fr.desc, 225, fY + 2);
-    doc.setFontSize(8.5);
-
-    fY += 9;
-  });
-
-  drawFooter(doc);
-  doc.save(`SOMISA_Resumen_Equipo_${game.opponentName.replace(/\s+/g, '_')}_${game.date}.pdf`);
+  doc.save(`SOMISA_Ficha_Tactica_y_Resumen_Equipo_${game.opponentName.replace(/\s+/g, '_')}_${game.date}.pdf`);
 }
 
 /**
@@ -835,9 +930,14 @@ export async function exportPlayerSummaryPdf(allGames: Game[]): Promise<void> {
 /**
  * EXPORTAR RESUMEN TOTAL DE TEMPORADA (EQUIPO E INDIVIDUAL) EN PDF
  * Página 1: Resumen Total del Equipo, Eficiencia Avanzada y Evolución por Partido
- * Página 2: Resumen Total Individual (Plantilla de jugadores) con escudo oficial
+ * Página 2: Ficha Táctica Individual del Partido, 4 Factores de Dean Oliver & Distribución de Puntos
+ * Página 3: Resumen Total Individual (Plantilla de jugadores) con escudo oficial
  */
-export async function exportSeasonTotalsPdf(games: Game[], filterDescription?: string): Promise<void> {
+export async function exportSeasonTotalsPdf(
+  games: Game[],
+  filterDescription?: string,
+  targetGame?: Game
+): Promise<void> {
   const crestImg = await loadCrestImage();
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -848,6 +948,8 @@ export async function exportSeasonTotalsPdf(games: Game[], filterDescription?: s
   const teamTotals = computeAggregatedTeamTotals(games);
   const aggPlayers = computeAggregatedPlayers(games);
   const gp = games.length || 1;
+  const matchToAnalyze = targetGame || games[0];
+  const totalPages = matchToAnalyze ? 3 : 2;
 
   // ==================== PÁGINA 1: RESUMEN TOTAL DEL EQUIPO & EFICIENCIA AVANZADA ====================
   drawHeader(
@@ -855,7 +957,7 @@ export async function exportSeasonTotalsPdf(games: Game[], filterDescription?: s
     'Resumen Total del Equipo · Eficiencia Avanzada y Métricas Globales',
     `Partidos Computados: ${games.length} | Balance: ${teamTotals.wins}V - ${teamTotals.losses}D (${teamTotals.winPct}%)${filterDescription ? ` | Filtro: ${filterDescription}` : ''}`,
     1,
-    2,
+    totalPages,
     crestImg
   );
 
@@ -1044,14 +1146,20 @@ export async function exportSeasonTotalsPdf(games: Game[], filterDescription?: s
 
   drawFooter(doc);
 
-  // ==================== PÁGINA 2: RESUMEN TOTAL INDIVIDUAL ====================
+  // ==================== PÁGINA 2: FICHA TÁCTICA INDIVIDUAL, 4 FACTORES & DISTRIBUCIÓN ====================
+  if (matchToAnalyze) {
+    doc.addPage('a4', 'landscape');
+    drawTacticalMatchPage(doc, matchToAnalyze, 2, totalPages, crestImg);
+  }
+
+  // ==================== PÁGINA 3 (O 2): RESUMEN TOTAL INDIVIDUAL ====================
   doc.addPage('a4', 'landscape');
   drawHeader(
     doc,
     'Resumen Total Individual · Estadísticas Acumuladas de Jugadores',
     `Plantilla Oficial de Club SOMISA · Total Partidos Computados: ${gp}${filterDescription ? ` | Filtro: ${filterDescription}` : ''}`,
-    2,
-    2,
+    totalPages,
+    totalPages,
     crestImg
   );
 

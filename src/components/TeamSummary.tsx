@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Game } from '../types/basketball';
 import { calculateTeamRowTotals, calculateFourFactors } from '../utils/calculations';
-import { exportSeasonTotalsPdf } from '../utils/exportPdf';
+import { exportSeasonTotalsPdf, exportTeamSummaryPdf } from '../utils/exportPdf';
 import { exportSeasonTotalsExcel, exportSeasonTotalsCsv } from '../utils/exportCsv';
 import { 
   Shield, 
@@ -471,9 +471,9 @@ export const TeamSummary: React.FC<TeamSummaryProps> = ({
             {filteredGames.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => exportSeasonTotalsPdf(filteredGames, currentFilterDescription)}
+                  onClick={() => exportSeasonTotalsPdf(filteredGames, currentFilterDescription, currentGame)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/90 hover:bg-red-600 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-                  title="Exportar Reporte PDF con los datos de Eficiencia Avanzada filtrados"
+                  title="Exportar Reporte PDF con Eficiencia Avanzada, Ficha Táctica y Plantilla"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>PDF Eficiencia</span>
@@ -970,9 +970,19 @@ export const TeamSummary: React.FC<TeamSummaryProps> = ({
                   SOMISA ({currentGame.scoreMyTeam}) vs {currentGame.opponentName} ({currentGame.scoreOpponent})
                 </h3>
               </div>
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                {currentGame.date} · {currentGame.competition}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                  {currentGame.date} · {currentGame.competition}
+                </span>
+                <button
+                  onClick={() => exportTeamSummaryPdf(currentGame)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#00205B] hover:bg-[#001744] dark:bg-[#0A327E] dark:hover:bg-[#154294] text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
+                  title="Descargar Ficha Táctica, 4 Factores y Distribución de Puntos en PDF"
+                >
+                  <FileText className="w-3.5 h-3.5 text-amber-400" />
+                  <span>PDF Ficha Táctica</span>
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

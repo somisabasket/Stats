@@ -18,7 +18,8 @@ import { Game } from '../types/basketball';
 import { 
   exportComprehensivePdf, 
   exportSeasonTotalsPdf,
-  exportSingleGamePdf
+  exportSingleGamePdf,
+  exportTeamSummaryPdf
 } from '../utils/exportPdf';
 import { 
   exportComprehensiveExcel, 
@@ -380,17 +381,17 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                 {/* PDF Resumen Total */}
                 <button
                   onClick={async () => {
-                    await exportSeasonTotalsPdf(exportSampleGames, filterDescription);
-                    triggerFeedback('Reporte PDF Oficial con Eficiencia Avanzada y Escudo SOMISA');
+                    await exportSeasonTotalsPdf(exportSampleGames, filterDescription, selectedGame || game);
+                    triggerFeedback('Reporte PDF Oficial (3 Páginas: Eficiencia Global, Ficha Táctica y Plantilla)');
                   }}
                   className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all text-center group cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform shadow-xs">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">PDF Total (A4)</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">PDF Total (3 Págs A4)</span>
                   <span className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-0.5">Con Escudo Oficial</span>
-                  <span className="text-[10px] text-slate-500 mt-1">Pág 1: Eficiencia & Evolución · Pág 2: Jugadores</span>
+                  <span className="text-[10px] text-slate-500 mt-1">Pág 1: Eficiencia · Pág 2: Ficha Táctica & 4 Factores · Pág 3: Jugadores</span>
                 </button>
 
                 {/* CSV Resumen Total */}
@@ -483,7 +484,7 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <button
                       onClick={() => {
                         exportSingleGameExcel(selectedGame);
@@ -506,6 +507,20 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                       <FileText className="w-8 h-8 text-red-600 mb-2 group-hover:scale-110 transition-transform" />
                       <span className="text-xs font-bold text-slate-900 dark:text-white">Planilla PDF (A4)</span>
                       <span className="text-[10px] text-slate-500 mt-0.5">Con Escudo + ORtg/DRtg/Pace</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        await exportTeamSummaryPdf(selectedGame);
+                        triggerFeedback(`Ficha Táctica PDF de ${selectedGame.opponentName} (4 Factores + Origen Puntos)`);
+                      }}
+                      className="flex flex-col items-center justify-center p-4 rounded-xl border-2 border-blue-400 dark:border-blue-700 bg-white dark:bg-slate-900 hover:bg-blue-50 dark:hover:bg-blue-950/40 hover:shadow-md transition-all text-center group cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-950/80 text-[#00205B] dark:text-[#93C5FD] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                        <FileText className="w-5 h-5 text-[#00205B] dark:text-[#93C5FD]" />
+                      </div>
+                      <span className="text-xs font-bold text-slate-900 dark:text-white">Ficha Táctica PDF</span>
+                      <span className="text-[10px] text-blue-600 dark:text-blue-400 font-bold mt-0.5">4 Factores + Origen Pts</span>
                     </button>
 
                     <button
