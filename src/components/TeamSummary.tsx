@@ -471,9 +471,9 @@ export const TeamSummary: React.FC<TeamSummaryProps> = ({
             {filteredGames.length > 0 && (
               <div className="flex items-center gap-1.5">
                 <button
-                  onClick={() => exportSeasonTotalsPdf(filteredGames, currentFilterDescription, currentGame)}
+                  onClick={() => exportSeasonTotalsPdf(filteredGames, currentFilterDescription)}
                   className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-500/90 hover:bg-red-600 text-white font-bold text-xs shadow-xs transition-all cursor-pointer"
-                  title="Exportar Reporte PDF con Eficiencia Avanzada, Ficha Táctica y Plantilla"
+                  title="Exportar Reporte PDF Acumulado con Eficiencia, Evolución y Plantilla"
                 >
                   <FileText className="w-3.5 h-3.5" />
                   <span>PDF Eficiencia</span>

@@ -381,17 +381,17 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
                 {/* PDF Resumen Total */}
                 <button
                   onClick={async () => {
-                    await exportSeasonTotalsPdf(exportSampleGames, filterDescription, selectedGame || game);
-                    triggerFeedback('Reporte PDF Oficial (3 Páginas: Eficiencia Global, Ficha Táctica y Plantilla)');
+                    await exportSeasonTotalsPdf(exportSampleGames, filterDescription);
+                    triggerFeedback('Reporte PDF Acumulado (Eficiencia Global, Evolución por Partido y Plantilla)');
                   }}
                   className="flex flex-col items-center justify-center p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-red-50 dark:hover:bg-red-950/40 hover:border-red-300 dark:hover:border-red-700 hover:shadow-md transition-all text-center group cursor-pointer"
                 >
                   <div className="w-12 h-12 rounded-xl bg-red-100 dark:bg-red-950/80 text-red-600 dark:text-red-400 flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform shadow-xs">
                     <FileText className="w-6 h-6" />
                   </div>
-                  <span className="text-xs font-bold text-slate-900 dark:text-white">PDF Total (3 Págs A4)</span>
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">PDF Acumulado (Torneo)</span>
                   <span className="text-[10px] text-red-600 dark:text-red-400 font-bold mt-0.5">Con Escudo Oficial</span>
-                  <span className="text-[10px] text-slate-500 mt-1">Pág 1: Eficiencia · Pág 2: Ficha Táctica & 4 Factores · Pág 3: Jugadores</span>
+                  <span className="text-[10px] text-slate-500 mt-1">Pág 1: Eficiencia & Puntos · Pág 2: Evolución Partidos · Pág 3: Plantilla</span>
                 </button>
 
                 {/* CSV Resumen Total */}
