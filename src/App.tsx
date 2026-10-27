@@ -47,12 +47,14 @@ export default function App() {
     saveDarkModePreference(darkMode);
   }, [darkMode]);
 
-  // Sync games to localStorage
+  // Sync games to localStorage and to local shared files (public/somisa_data.json)
   useEffect(() => {
     if (games.length > 0) {
       saveGames(games);
+      syncToLocalServer(games, roster);
+      triggerAutoGitHubSync(games, roster);
     }
-  }, [games]);
+  }, [games, roster]);
 
   // Sync master roster to localStorage
   useEffect(() => {

@@ -171,14 +171,33 @@ export const GitHubExportModal: React.FC<GitHubExportModalProps> = ({
         </div>
 
         <div className="p-6 overflow-y-auto space-y-5 flex-1">
-          {/* Why browsers don't sync by default */}
-          <div className="p-4 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#00205B] dark:text-[#93C5FD]">
-              <Globe className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              <span>¿Por qué los partidos cargados en un navegador no aparecían en otro?</span>
+          {/* Current Status Card */}
+          <div className="p-4 rounded-xl bg-slate-900 text-white border border-slate-800 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-blue-300 uppercase tracking-wider">
+                Partidos Cargados en el Sistema
+              </span>
+              <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                {games.length} {games.length === 1 ? 'partido' : 'partidos'}
+              </span>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              GitHub Pages es un servidor estático: cuando cargas un partido, se guarda en la memoria interna (<code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800">localStorage</code>) de <strong>ese navegador</strong>. Para que todos los demás navegadores y celulares vean los partidos nuevos, ahora la app lee automáticamente el archivo compartido <code className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-800 font-bold">public/somisa_data.json</code> de tu GitHub.
+            <div className="flex flex-wrap items-center justify-between text-xs text-slate-300 gap-2">
+              <div>
+                Último partido registrado: <strong className="text-white">{games[0]?.opponentName || 'Rival'}</strong>
+                {games[0]?.date && <span className="text-slate-400 font-mono ml-1.5">({games[0].date})</span>}
+                {games[0]?.scoreMyTeam !== undefined && (
+                  <span className="ml-1.5 px-1.5 py-0.5 rounded bg-white/10 font-mono text-[11px]">
+                    SOMISA {games[0].scoreMyTeam} - {games[0].scoreOpponent}
+                  </span>
+                )}
+              </div>
+              <div className="text-[11px] text-emerald-400 font-semibold flex items-center gap-1">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Sincronización activa</span>
+              </div>
+            </div>
+            <p className="text-[11px] text-slate-400 pt-1 border-t border-slate-800">
+              💡 <strong>¿Por qué en GitHub el último partido era Belgrano?</strong> En los archivos base de la temporada el último partido precargado era el de Belgrano (05/10/2026). Ahora la app guarda automáticamente cada partido nuevo en <code className="text-blue-300 font-bold">somisa_data.json</code> y en el código del servidor para que viajen a GitHub cada vez que actualizas.
             </p>
           </div>
 

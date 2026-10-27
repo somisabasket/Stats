@@ -117,18 +117,26 @@ export async function fetchRemoteSharedData(): Promise<{ games?: Game[]; roster?
  * aparezca 2 veces al sincronizar con GitHub.
  */
 function getMatchSignature(g: Game): string {
-  const opp = (g.opponentName || '')
+  const rawOpp = (
+    g.opponentName ||
+    (g as any).opponent ||
+    (g.title ? g.title.replace(/^SOMISA[^(]*\([^)]*\)\s*vs\s*/i, '').trim() : '') ||
+    'RIVAL'
+  );
+  const opp = rawOpp
     .trim()
     .toUpperCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .replace(/\s+/g, ' ');
+  const date = (g.date || '').trim();
   const scoreMy = Number(g.scoreMyTeam) || 0;
   const scoreOpp = Number(g.scoreOpponent) || 0;
   if (scoreMy === 0 && scoreOpp === 0) {
-    return `${opp}__0-0__${g.date || ''}__${g.id}`;
+    return `${opp}__${date}__0-0__${g.id}`;
   }
-  return `${opp}__${scoreMy}-${scoreOpp}`;
+  // Se incluye la fecha para no colapsar partidos revancha o de playoff contra el mismo rival con igual marcador
+  return `${opp}__${date}__${scoreMy}-${scoreOpp}`;
 }
 
 export function deduplicateGamesList(games: Game[]): Game[] {

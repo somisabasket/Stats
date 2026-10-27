@@ -125,8 +125,49 @@ function devSavePlugin() {
           req.on('end', () => {
             try {
               const data = JSON.parse(body);
+              if (!data || !Array.isArray(data.games) || data.games.length === 0) {
+                res.statusCode = 400;
+                res.end(JSON.stringify({ error: 'Payload must contain games array' }));
+                return;
+              }
+
               const rootDir = path.resolve(import.meta.dirname || '.');
-              const jsonStr = JSON.stringify(data, null, 2);
+
+              // Combinar con partidos que pudieran ya existir en disco para no perder ninguno
+              let finalGames = data.games;
+              const diskPath = path.join(rootDir, 'public', 'somisa_data.json');
+              if (fs.existsSync(diskPath)) {
+                try {
+                  const diskData = JSON.parse(fs.readFileSync(diskPath, 'utf-8'));
+                  if (Array.isArray(diskData.games) && diskData.games.length > 0) {
+                    const existingMap = new Map();
+                    // Priorizamos los partidos entrantes (ediciones más recientes)
+                    data.games.forEach((g: any) => {
+                      if (g && g.id) existingMap.set(g.id, g);
+                    });
+                    // Agregamos partidos de disco que no estén en el payload
+                    diskData.games.forEach((g: any) => {
+                      if (g && g.id && !existingMap.has(g.id)) {
+                        existingMap.set(g.id, g);
+                      }
+                    });
+                    finalGames = Array.from(existingMap.values()).sort(
+                      (a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                  }
+                } catch {}
+              }
+
+              const safePayload = {
+                appName: 'Club SOMISA Básquetbol',
+                version: '4.0.0',
+                exportDate: new Date().toISOString(),
+                totalGames: finalGames.length,
+                roster: data.roster || [],
+                games: finalGames
+              };
+
+              const jsonStr = JSON.stringify(safePayload, null, 2);
               const targetFiles = [
                 path.join(rootDir, 'public', 'somisa_data.json'),
                 path.join(rootDir, 'somisa_data.json'),
@@ -134,6 +175,7 @@ function devSavePlugin() {
               ];
               for (const tf of targetFiles) {
                 try {
+                  fs.mkdirSync(path.dirname(tf), { recursive: true });
                   fs.writeFileSync(tf, jsonStr, 'utf-8');
                 } catch {}
               }
@@ -150,11 +192,14 @@ function devSavePlugin() {
               if (fs.existsSync(distDir)) {
                 try {
                   fs.writeFileSync(path.join(distDir, 'somisa_data.json'), jsonStr, 'utf-8');
+                  if (fs.existsSync(path.join(distDir, 'public'))) {
+                    fs.writeFileSync(path.join(distDir, 'public', 'somisa_data.json'), jsonStr, 'utf-8');
+                  }
                 } catch {}
               }
 
               res.setHeader('Content-Type', 'application/json');
-              res.end(JSON.stringify({ success: true }));
+              res.end(JSON.stringify({ success: true, count: finalGames.length }));
             } catch (err: any) {
               res.statusCode = 500;
               res.end(JSON.stringify({ error: err.message }));
