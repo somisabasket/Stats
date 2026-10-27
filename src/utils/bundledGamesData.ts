@@ -10,7 +10,7 @@ export const BUNDLED_SOMISA_DATA: {
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-10-27T14:14:51.267Z",
+  "exportDate": "2026-10-27T15:06:41.117Z",
   "totalGames": 7,
   "roster": [
     {
@@ -95,6 +95,14 @@ export const BUNDLED_SOMISA_DATA: {
     },
     {
       "id": "som_p11",
+      "name": "VASSOLO, EMILIANO",
+      "number": 13,
+      "position": "Alero",
+      "isCaptain": false,
+      "active": true
+    },
+    {
+      "id": "som_p11",
       "name": "MASCAZZINI, ALEJO BENJAMIN",
       "number": 20,
       "position": "Alero",
@@ -105,6 +113,14 @@ export const BUNDLED_SOMISA_DATA: {
       "id": "som_p12",
       "name": "ANDOLLO, SEBASTIAN",
       "number": 33,
+      "position": "Pívot",
+      "isCaptain": false,
+      "active": true
+    },
+    {
+      "id": "som_p14",
+      "name": "MENA, SEBASTIAN ALEJANDRO",
+      "number": 88,
       "position": "Pívot",
       "isCaptain": false,
       "active": true
