@@ -19,7 +19,8 @@ import {
   exportComprehensivePdf, 
   exportSeasonTotalsPdf,
   exportSingleGamePdf,
-  exportTeamSummaryPdf
+  exportTeamSummaryPdf,
+  exportAllMatchesComprehensivePdf
 } from '../utils/exportPdf';
 import { 
   exportComprehensiveExcel, 
@@ -444,24 +445,37 @@ export const ReportExportModal: React.FC<ReportExportModalProps> = ({
               </div>
 
               {selectedGameId === 'ALL_GAMES' ? (
-                <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 space-y-3">
+                <div className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 space-y-3.5">
                   <div className="flex items-center gap-2 font-bold text-xs text-slate-900 dark:text-white">
                     <Calendar className="w-4 h-4 text-blue-500" />
-                    <span>Exportación Unificada de Todos los Partidos ({allGames.length} encuentros)</span>
+                    <span>Reporte Integral: Todos los Partidos Separados + Resumen General ({allGames.length} encuentros)</span>
                   </div>
-                  <p className="text-xs text-slate-500">
-                    Genera un único libro de Excel con una hoja inicial de <strong>Eficiencia Global & Evolución</strong> más una pestaña individual por cada partido jugado.
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Genera el reporte integral oficial: <strong>Hoja 1 con Resumen General Acumulado</strong> (récord, eficiencia avanzada, 4 factores, plantilla completa con promedios y evolución de partidos) más <strong>una pestaña dedicada por cada partido individual</strong> con su boxscore oficial y totales.
                   </p>
-                  <button
-                    onClick={() => {
-                      exportAllGamesExcel(allGames);
-                      triggerFeedback(`Libro Excel con Eficiencia Global + ${allGames.length} partidos`);
-                    }}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
-                  >
-                    <FileSpreadsheet className="w-4 h-4" />
-                    <span>Descargar Libro con Todos los Partidos (.xlsx)</span>
-                  </button>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <button
+                      onClick={() => {
+                        exportAllGamesExcel(allGames);
+                        triggerFeedback(`Libro Excel (.xlsx) con Resumen General + ${allGames.length} partidos separados`);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <FileSpreadsheet className="w-4 h-4" />
+                      <span>Descargar Excel con Todos los Partidos (.xlsx)</span>
+                    </button>
+
+                    <button
+                      onClick={async () => {
+                        await exportAllMatchesComprehensivePdf(allGames);
+                        triggerFeedback(`Reporte PDF Oficial: Resumen General + ${allGames.length} partidos separados`);
+                      }}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-sm transition-all cursor-pointer"
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Descargar PDF Completo (General + Partidos)</span>
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3">

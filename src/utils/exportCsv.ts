@@ -1516,42 +1516,165 @@ export function exportSingleGameExcel(game: Game): void {
 }
 
 /**
- * EXPORTAR TODOS LOS PARTIDOS EN UN LIBRO EXCEL (UNA HOJA POR PARTIDO + RESUMEN GLOBAL)
+ * EXPORTAR TODOS LOS PARTIDOS EN UN LIBRO EXCEL (UNA HOJA POR PARTIDO + RESUMEN GENERAL COMPLETO)
  */
-export function exportAllGamesExcel(games: Game[]): void {
+export function exportAllGamesExcel(games: Game[], filterDescription?: string): void {
   const wb = XLSX.utils.book_new();
   const teamTotalsGlobal = computeAggregatedTeamTotals(games);
+  const aggPlayers = computeAggregatedPlayers(games);
 
-  // Hoja Inicial: Resumen Global de Eficiencia Avanzada
+  // =========================================================================
+  // HOJA 1: RESUMEN GENERAL ACUMULADO
+  // =========================================================================
   const summarySheetData: (string | number)[][] = [
-    ['CLUB SOMISA - RESUMEN GLOBAL DE EFICIENCIA AVANZADA Y EVOLUCIÓN DE PARTIDOS'],
-    [`Total Partidos: ${games.length} | Récord: ${teamTotalsGlobal.wins}V - ${teamTotalsGlobal.losses}D (${teamTotalsGlobal.winPct}%)`],
+    ['CLUB SOMISA SAN NICOLÁS - REPORTE GENERAL ACUMULADO'],
+    [`Temporada Oficial | ${filterDescription || `Total Partidos Computados: ${games.length}`}`],
+    [`Récord Global: ${teamTotalsGlobal.wins} Victorias - ${teamTotalsGlobal.losses} Derrotas (${teamTotalsGlobal.winPct}%) | Puntos SOMISA: ${teamTotalsGlobal.totalPoints} (${teamTotalsGlobal.avgPoints} PTS/PJ) | Puntos Rival: ${teamTotalsGlobal.totalOpponentPoints} (${teamTotalsGlobal.avgOpponentPoints} PTS/PJ) | Diferencial: ${teamTotalsGlobal.pointDiff > 0 ? '+' : ''}${teamTotalsGlobal.pointDiff}`],
     [],
-    ['MÉTRICA GLOBAL DE EFICIENCIA AVANZADA', 'VALOR ACUMULADO', 'PROMEDIO / DETALLE'],
-    ['Offensive Rating Global (ORtg)', teamTotalsGlobal.offensiveRating, `${teamTotalsGlobal.pointsPerPossession} PPP`],
-    ['Defensive Rating Global (DRtg)', teamTotalsGlobal.defensiveRating, `${teamTotalsGlobal.oppPointsPerPossession} Opp PPP`],
-    ['Net Rating Global (NetRtg)', teamTotalsGlobal.netRating, `Dif Pts: ${teamTotalsGlobal.pointDiff > 0 ? '+' : ''}${teamTotalsGlobal.pointDiff}`],
-    ['Pace Promedio (Posesiones / 40 min)', teamTotalsGlobal.pace, `~${(2400 / (teamTotalsGlobal.pace || 1) / 2).toFixed(1)}s/pos`],
-    ['True Shooting Global (TS%)', `${teamTotalsGlobal.trueShootingPct}%`, `eFG%: ${teamTotalsGlobal.eFGPct}%`],
-    ['Relación AST / PER Global', teamTotalsGlobal.assistToTurnoverRatio, `AST%: ${teamTotalsGlobal.assistedFGPct}%`],
-    ['1. Tiro Efectivo (eFG%)', `${teamTotalsGlobal.eFGPct}%`, `Rival: ${teamTotalsGlobal.oppEFGPct}%`],
-    ['2. Cuidado de Balón (ToV%)', `${teamTotalsGlobal.tovPct}%`, `Rival: ${teamTotalsGlobal.oppTovPct}%`],
-    ['3. Rebote Ofensivo (ORB%)', `${teamTotalsGlobal.orbPct}%`, `Rival Def: ${teamTotalsGlobal.drbPct}%`],
-    ['4. Frecuencia Tiros Libres (FTr)', `${teamTotalsGlobal.ftRate}%`, `Rival: ${teamTotalsGlobal.oppFtRate}%`],
+    ['MÉTRICAS COLECTIVAS DE EFICIENCIA AVANZADA (DEAN OLIVER & RATINGS)', 'VALOR GLOBAL', 'PROMEDIO / DETALLE', 'EVALUACIÓN'],
+    ['Offensive Rating Global (ORtg - Puntos cada 100 posesiones)', teamTotalsGlobal.offensiveRating, `${teamTotalsGlobal.pointsPerPossession} PPP (Puntos por posesión)`, teamTotalsGlobal.offensiveRating >= 105 ? 'Ataque de Alta Eficiencia' : 'Estándar'],
+    ['Defensive Rating Global (DRtg - Puntos permitidos cada 100 pos)', teamTotalsGlobal.defensiveRating, `${teamTotalsGlobal.oppPointsPerPossession} Opp PPP`, teamTotalsGlobal.defensiveRating <= 98 ? 'Defensa de Alta Intensidad' : 'Estándar'],
+    ['Net Rating Global (Diferencial Neto de Eficiencia)', teamTotalsGlobal.netRating, `Dif Pts: ${teamTotalsGlobal.pointDiff > 0 ? '+' : ''}${teamTotalsGlobal.pointDiff} (${teamTotalsGlobal.avgPointDiff > 0 ? '+' : ''}${teamTotalsGlobal.avgPointDiff}/PJ)`, teamTotalsGlobal.netRating >= 0 ? 'Diferencial Positivo (+)' : 'Diferencial Negativo (-)'],
+    ['Pace Promedio (Ritmo de juego en posesiones / 40 min)', teamTotalsGlobal.pace, `~${(2400 / (teamTotalsGlobal.pace || 1) / 2).toFixed(1)} segundos por posesión`, 'Ritmo de posesión'],
+    ['True Shooting Global (TS% - Tiro Real ponderado)', `${teamTotalsGlobal.trueShootingPct}%`, `eFG%: ${teamTotalsGlobal.eFGPct}%`, 'Efectividad global con triples y libres'],
+    ['Relación Asistencias / Pérdidas (AST/PER)', teamTotalsGlobal.assistToTurnoverRatio, `Canastas Asistidas: ${teamTotalsGlobal.assistedFGPct}%`, 'Circulación y cuidado del balón'],
+    ['1. Tiro Efectivo Colectivo (eFG% - 40% importancia)', `${teamTotalsGlobal.eFGPct}%`, `Rival: ${teamTotalsGlobal.oppEFGPct}%`, teamTotalsGlobal.eFGPct >= teamTotalsGlobal.oppEFGPct ? 'Ventaja SOMISA' : 'Ventaja Rival'],
+    ['2. Cuidado de Balón (ToV% - 25% importancia)', `${teamTotalsGlobal.tovPct}%`, `Rival: ${teamTotalsGlobal.oppTovPct}%`, teamTotalsGlobal.tovPct <= teamTotalsGlobal.oppTovPct ? 'Ventaja SOMISA (Menos pérdidas)' : 'Ventaja Rival'],
+    ['3. Rebote Ofensivo (ORB% - 20% importancia)', `${teamTotalsGlobal.orbPct}%`, `Rival Def: ${teamTotalsGlobal.drbPct}%`, teamTotalsGlobal.orbPct >= (100 - teamTotalsGlobal.drbPct) ? 'Ventaja SOMISA' : 'Ventaja Rival'],
+    ['4. Frecuencia de Tiros Libres (FTr - 15% importancia)', `${teamTotalsGlobal.ftRate}%`, `Rival: ${teamTotalsGlobal.oppFtRate}%`, teamTotalsGlobal.ftRate >= teamTotalsGlobal.oppFtRate ? 'Ventaja SOMISA' : 'Ventaja Rival'],
     [],
-    ['EVOLUCIÓN PARTIDO A PARTIDO'],
-    ['Fecha', 'Rival', 'Competencia', 'Condición', 'Resultado', 'Pace', 'ORtg', 'DRtg', 'Net Rating', 'eFG%', 'ToV%', 'TS%']
+    ['DESGLOSE COLECTIVO DE PUNTOS ANOTADOS', 'PUNTOS', '% TOTAL', 'CONVERTIDOS / INTENTADOS'],
+    ['Puntos en Tiros de 2 (Dobles)', teamTotalsGlobal.tc * 2, teamTotalsGlobal.totalPoints > 0 ? `${((teamTotalsGlobal.tc * 2 / teamTotalsGlobal.totalPoints) * 100).toFixed(1)}%` : '0%', `${teamTotalsGlobal.tc}/${teamTotalsGlobal.ti} (${teamTotalsGlobal.tiPct}%)`],
+    ['Puntos en Tiros de 3 (Triples)', teamTotalsGlobal.c3p * 3, teamTotalsGlobal.totalPoints > 0 ? `${((teamTotalsGlobal.c3p * 3 / teamTotalsGlobal.totalPoints) * 100).toFixed(1)}%` : '0%', `${teamTotalsGlobal.c3p}/${teamTotalsGlobal.i3p} (${teamTotalsGlobal.pct3p}%)`],
+    ['Puntos en Tiros Libres', teamTotalsGlobal.tlc, teamTotalsGlobal.totalPoints > 0 ? `${((teamTotalsGlobal.tlc / teamTotalsGlobal.totalPoints) * 100).toFixed(1)}%` : '0%', `${teamTotalsGlobal.tlc}/${teamTotalsGlobal.tli} (${teamTotalsGlobal.tlPct}%)`],
+    [],
+    ['PLANTILLA INDIVIDUAL - TOTALES Y PROMEDIOS ACUMULADOS'],
+    [
+      '# Dorsal',
+      'Jugador',
+      'Posición',
+      'Partidos (PJ)',
+      'PTS Tot',
+      'PTS / PJ',
+      '2P Conv',
+      '2P Int',
+      '2P %',
+      '3P Conv',
+      '3P Int',
+      '3P %',
+      'TL Conv',
+      'TL Int',
+      'TL %',
+      'Reb Def',
+      'Reb Of',
+      'Reb Tot',
+      'REB / PJ',
+      'AST Tot',
+      'AST / PJ',
+      'REC Tot',
+      'REC / PJ',
+      'PER Tot',
+      'PER / PJ',
+      'TAP Tot',
+      'FAL Com',
+      'FAL Rec',
+      'VAL Total',
+      'VAL / PJ'
+    ]
   ];
 
-  games.forEach(g => {
+  aggPlayers.forEach(p => {
+    const avgSteals = Number((p.rec / (p.gamesPlayed || 1)).toFixed(1));
+    const avgTurnovers = Number((p.per / (p.gamesPlayed || 1)).toFixed(1));
+    summarySheetData.push([
+      p.number ?? '',
+      p.name,
+      p.position || '',
+      p.gamesPlayed,
+      p.totalPoints,
+      p.avgPoints,
+      p.tc,
+      p.ti,
+      `${p.pct2p}%`,
+      p.c3p,
+      p.i3p,
+      `${p.pct3p}%`,
+      p.tlc,
+      p.tli,
+      `${p.pctFt}%`,
+      p.rd,
+      p.ro,
+      p.totalRebounds,
+      p.avgRebounds,
+      p.totalAssists,
+      p.avgAssists,
+      p.rec,
+      avgSteals,
+      p.per,
+      avgTurnovers,
+      p.tap,
+      p.fpc,
+      p.fpr,
+      p.totalValuation,
+      p.avgValuation
+    ]);
+  });
+
+  // Fila de Totales de Equipo
+  summarySheetData.push([
+    '∑',
+    'TOTALES Y PROMEDIOS SOMISA',
+    '',
+    games.length,
+    teamTotalsGlobal.totalPoints,
+    teamTotalsGlobal.avgPoints,
+    teamTotalsGlobal.tc,
+    teamTotalsGlobal.ti,
+    `${teamTotalsGlobal.tiPct}%`,
+    teamTotalsGlobal.c3p,
+    teamTotalsGlobal.i3p,
+    `${teamTotalsGlobal.pct3p}%`,
+    teamTotalsGlobal.tlc,
+    teamTotalsGlobal.tli,
+    `${teamTotalsGlobal.tlPct}%`,
+    teamTotalsGlobal.rd,
+    teamTotalsGlobal.ro,
+    teamTotalsGlobal.rt,
+    teamTotalsGlobal.avgRebounds,
+    teamTotalsGlobal.as,
+    teamTotalsGlobal.avgAssists,
+    teamTotalsGlobal.rec,
+    teamTotalsGlobal.avgSteals,
+    teamTotalsGlobal.per,
+    teamTotalsGlobal.avgTurnovers,
+    teamTotalsGlobal.tap,
+    teamTotalsGlobal.fpc,
+    teamTotalsGlobal.fpr,
+    teamTotalsGlobal.totalValuation,
+    teamTotalsGlobal.avgValuation
+  ]);
+
+  // Evolución de Partidos
+  summarySheetData.push(
+    [],
+    ['EVOLUCIÓN Y RENDIMIENTO PARTIDO A PARTIDO'],
+    ['#', 'Fecha', 'Rival', 'Competencia', 'Condición', 'Resultado', 'SOMISA', 'Rival', 'Diferencia', 'Pace', 'ORtg', 'DRtg', 'Net Rating', 'eFG%', 'ToV%', 'TS%']
+  );
+
+  games.forEach((g, idx) => {
     const rTot = calculateTeamRowTotals(g.rows);
     const f = calculateFourFactors(rTot, g.opponentStats);
+    const diff = g.scoreMyTeam - g.scoreOpponent;
     summarySheetData.push([
+      idx + 1,
       g.date,
       g.opponentName,
       g.competition,
-      g.homeAway === 'home' ? 'Local' : 'Visitante',
-      `${g.scoreMyTeam} - ${g.scoreOpponent}`,
+      (g.homeAway || 'home') === 'home' ? 'Local' : 'Visitante',
+      diff > 0 ? 'Victoria' : diff < 0 ? 'Derrota' : 'Empate',
+      g.scoreMyTeam,
+      g.scoreOpponent,
+      diff > 0 ? `+${diff}` : diff,
       f.pace,
       f.offensiveRating,
       f.defensiveRating,
@@ -1563,18 +1686,36 @@ export function exportAllGamesExcel(games: Game[]): void {
   });
 
   const wsSummary = XLSX.utils.aoa_to_sheet(summarySheetData);
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Eficiencia Global');
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Resumen General');
+
+  // =========================================================================
+  // HOJAS 2...N: UNA HOJA POR CADA PARTIDO INDIVIDUAL
+  // =========================================================================
+  const usedSheetNames = new Set<string>(['Resumen General']);
 
   games.forEach((game, index) => {
     const teamTotals = calculateTeamRowTotals(game.rows);
     const factors = calculateFourFactors(teamTotals, game.opponentStats);
+    const diff = game.scoreMyTeam - game.scoreOpponent;
+
+    const singlePoss = (teamTotals.ti + teamTotals.i3p) + 0.44 * teamTotals.tli - teamTotals.ro + teamTotals.per || 1;
+    const oppFgaSingle = game.opponentStats ? game.opponentStats.ti + game.opponentStats.i3p : 0;
+    const oppPossSingle = game.opponentStats
+      ? (oppFgaSingle + 0.44 * game.opponentStats.tli - game.opponentStats.ro + game.opponentStats.per || singlePoss)
+      : singlePoss;
+    const singlePpp = Number((game.scoreMyTeam / singlePoss).toFixed(2));
+    const singleOppPpp = Number((game.scoreOpponent / oppPossSingle).toFixed(2));
+    const singleAstTo = teamTotals.per > 0 ? Number((teamTotals.as / teamTotals.per).toFixed(2)) : teamTotals.as;
+    const singleFgm = teamTotals.tc + teamTotals.c3p;
+    const singleAstPct = singleFgm > 0 ? Number(((teamTotals.as / singleFgm) * 100).toFixed(1)) : 0;
+
     const sheetData: (string | number)[][] = [
       [`PLANILLA OFICIAL - PARTIDO ${index + 1}: ${game.myTeamName} vs ${game.opponentName}`],
-      [`Fecha: ${game.date} | Torneo: ${game.competition} | Resultado: ${game.scoreMyTeam} - ${game.scoreOpponent}`],
-      [`Eficiencia Avanzada: Pace ${factors.pace} | ORtg ${factors.offensiveRating} | DRtg ${factors.defensiveRating} | NetRtg ${factors.netRating > 0 ? '+' : ''}${factors.netRating} | eFG% ${factors.eFGPct}% | TS% ${teamTotals.tsPct}%`],
+      [`Fecha: ${game.date} | Condición: ${(game.homeAway || 'home') === 'home' ? 'Local' : 'Visitante'} | Torneo: ${game.competition} | Temporada: ${game.season}`],
+      [`Resultado Final: ${game.myTeamName} ${game.scoreMyTeam} - ${game.scoreOpponent} ${game.opponentName} (${diff > 0 ? `Victoria por +${diff}` : `Derrota por ${diff}`})`],
       [],
       [
-        '#',
+        '# Dorsal',
         'Jugador',
         'Posición',
         'MIN',
@@ -1594,8 +1735,8 @@ export function exportAllGamesExcel(games: Game[]): void {
         'REC',
         'PER',
         'TAP',
-        'FC',
-        'FR',
+        'FAL Com',
+        'FAL Rec',
         'PTS',
         'VAL'
       ]
@@ -1609,13 +1750,13 @@ export function exportAllGamesExcel(games: Game[]): void {
         r.min,
         r.tc,
         r.ti,
-        r.tiPct,
+        `${r.tiPct}%`,
         r.c3p,
         r.i3p,
-        r.pct3p,
+        `${r.pct3p}%`,
         r.tlc,
         r.tli,
-        r.tlPct,
+        `${r.tlPct}%`,
         r.rd,
         r.ro,
         r.rt,
@@ -1630,6 +1771,7 @@ export function exportAllGamesExcel(games: Game[]): void {
       ]);
     });
 
+    // Fila Totales SOMISA
     sheetData.push([
       '∑',
       'TOTALES SOMISA',
@@ -1637,13 +1779,13 @@ export function exportAllGamesExcel(games: Game[]): void {
       teamTotals.min,
       teamTotals.tc,
       teamTotals.ti,
-      teamTotals.tiPct,
+      `${teamTotals.tiPct}%`,
       teamTotals.c3p,
       teamTotals.i3p,
-      teamTotals.pct3p,
+      `${teamTotals.pct3p}%`,
       teamTotals.tlc,
       teamTotals.tli,
-      teamTotals.tlPct,
+      `${teamTotals.tlPct}%`,
       teamTotals.rd,
       teamTotals.ro,
       teamTotals.rt,
@@ -1657,12 +1799,76 @@ export function exportAllGamesExcel(games: Game[]): void {
       teamTotals.ptsTot
     ]);
 
-    const cleanSheetName = `P${index + 1}_${game.opponentName.replace(/[^a-zA-Z0-9]/g, '').slice(0, 15)}` || `Partido_${index + 1}`;
+    // Fila Totales Rival si están disponibles
+    if (game.opponentStats) {
+      const opp = game.opponentStats;
+      const oppTiPct = opp.ti > 0 ? Number(((opp.tc / opp.ti) * 100).toFixed(1)) : 0;
+      const oppPct3p = opp.i3p > 0 ? Number(((opp.c3p / opp.i3p) * 100).toFixed(1)) : 0;
+      const oppTlPct = opp.tli > 0 ? Number(((opp.tlc / opp.tli) * 100).toFixed(1)) : 0;
+      sheetData.push([
+        '∑',
+        `TOTALES ${game.opponentName}`,
+        '',
+        teamTotals.min,
+        opp.tc,
+        opp.ti,
+        `${oppTiPct}%`,
+        opp.c3p,
+        opp.i3p,
+        `${oppPct3p}%`,
+        opp.tlc,
+        opp.tli,
+        `${oppTlPct}%`,
+        opp.rd,
+        opp.ro,
+        opp.rd + opp.ro,
+        opp.as,
+        opp.rec,
+        opp.per,
+        opp.tap,
+        opp.fpc,
+        '',
+        opp.pts,
+        ''
+      ]);
+    }
+
+    // Ficha Táctica y 4 Factores del Partido
+    sheetData.push(
+      [],
+      ['EFICIENCIA AVANZADA Y 4 FACTORES DE DEAN OLIVER (ESTE PARTIDO)'],
+      ['Métrica Táctica', 'SOMISA', 'Rival', 'Impacto en el Resultado'],
+      ['Pace Estimado (Posesiones / 40 min)', factors.pace, factors.pace, `~${(2400 / (factors.pace || 1) / 2).toFixed(1)} segundos por posesión`],
+      ['Offensive Rating (ORtg - Pts/100 pos)', factors.offensiveRating, factors.defensiveRating, `${singlePpp} PPP (Puntos por posesión)`],
+      ['Defensive Rating (DRtg - Pts permitidos/100 pos)', factors.defensiveRating, factors.offensiveRating, `${singleOppPpp} Opp PPP`],
+      ['Net Rating (Diferencial Neto)', factors.netRating, -factors.netRating, factors.netRating >= 0 ? 'Favorable SOMISA (+)' : 'Desfavorable Rival (-)'],
+      ['True Shooting % (TS% - Tiro Real)', `${teamTotals.tsPct}%`, '', 'Efectividad global con dobles, triples y libres'],
+      ['Relación Asistencias / Pérdidas (AST/PER)', singleAstTo, '', `${teamTotals.as} AST / ${teamTotals.per} PER (${singleAstPct}% asistidas)`],
+      ['1. Tiro Efectivo (eFG% - 40% peso)', `${factors.eFGPct}%`, `${factors.oppEFGPct}%`, factors.eFGPct >= factors.oppEFGPct ? 'Ventaja SOMISA' : 'Ventaja Rival'],
+      ['2. Cuidado de Balón (ToV% - 25% peso)', `${factors.tovPct}%`, `${factors.oppTovPct}%`, factors.tovPct <= factors.oppTovPct ? 'Ventaja SOMISA (Menos pérdidas)' : 'Ventaja Rival'],
+      ['3. Rebote Ofensivo (ORB% - 20% peso)', `${factors.orbPct}%`, `${100 - factors.drbPct}%`, factors.orbPct >= (100 - factors.drbPct) ? 'Ventaja SOMISA' : 'Ventaja Rival'],
+      ['4. Frecuencia Tiros Libres (FTr - 15% peso)', `${factors.ftRate}%`, `${factors.oppFtRate}%`, factors.ftRate >= factors.oppFtRate ? 'Ventaja SOMISA' : 'Ventaja Rival'],
+      [],
+      ['DISTRIBUCIÓN Y ORIGEN DE LOS PUNTOS', 'PUNTOS', '% TOTAL', 'CONV / INT'],
+      ['Puntos en Tiros de 2 (Dobles)', teamTotals.tc * 2, teamTotals.pt > 0 ? `${((teamTotals.tc * 2 / teamTotals.pt) * 100).toFixed(1)}%` : '0%', `${teamTotals.tc}/${teamTotals.ti} (${teamTotals.tiPct}%)`],
+      ['Puntos en Tiros de 3 (Triples)', teamTotals.c3p * 3, teamTotals.pt > 0 ? `${((teamTotals.c3p * 3 / teamTotals.pt) * 100).toFixed(1)}%` : '0%', `${teamTotals.c3p}/${teamTotals.i3p} (${teamTotals.pct3p}%)`],
+      ['Puntos en Tiros Libres', teamTotals.tlc, teamTotals.pt > 0 ? `${((teamTotals.tlc / teamTotals.pt) * 100).toFixed(1)}%` : '0%', `${teamTotals.tlc}/${teamTotals.tli} (${teamTotals.tlPct}%)`]
+    );
+
+    // Sanitize sheet name (Max 31 chars, no invalid chars : \ / ? * [ ])
+    const cleanOpponent = (game.opponentName || `Rival_${index + 1}`).replace(/[:\\/?*\[\]]/g, '').trim();
+    let sheetNameCandidate = `P${index + 1}_${cleanOpponent}`.slice(0, 28);
+    if (usedSheetNames.has(sheetNameCandidate)) {
+      sheetNameCandidate = `P${index + 1}_${index}`.slice(0, 28);
+    }
+    usedSheetNames.add(sheetNameCandidate);
+
     const ws = XLSX.utils.aoa_to_sheet(sheetData);
-    XLSX.utils.book_append_sheet(wb, ws, cleanSheetName);
+    XLSX.utils.book_append_sheet(wb, ws, sheetNameCandidate);
   });
 
-  XLSX.writeFile(wb, `SOMISA_Todos_Los_Partidos_${games.length}_Partidos.xlsx`);
+  const dateStr = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `SOMISA_Reporte_General_Y_Partidos_${games.length}_Partidos_${dateStr}.xlsx`);
 }
 
 /**

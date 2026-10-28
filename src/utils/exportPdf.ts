@@ -1683,3 +1683,465 @@ export async function exportSingleGamePdf(game: Game): Promise<void> {
   doc.save(`SOMISA_Planilla_${game.opponentName.replace(/\s+/g, '_')}_${game.date}.pdf`);
 }
 
+/**
+ * EXPORTAR REPORTE MAESTRO: RESUMEN GENERAL + TODOS LOS PARTIDOS SEPARADOS (PDF)
+ * Página 1: Resumen General Colectivo y Evolución Partido a Partido
+ * Página 2: Plantilla Individual Acumulada con Totales y Promedios
+ * Páginas 3...N: Planilla Oficial y Ficha Táctica de cada partido individual
+ */
+export async function exportAllMatchesComprehensivePdf(games: Game[], filterDescription?: string): Promise<void> {
+  const crestImg = await loadCrestImage();
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+
+  const totalPages = 2 + games.length;
+  const teamTotalsGlobal = computeAggregatedTeamTotals(games);
+  const aggPlayers = computeAggregatedPlayers(games);
+
+  // =========================================================================
+  // PÁGINA 1: RESUMEN GENERAL COLECTIVO & EVOLUCIÓN
+  // =========================================================================
+  drawHeader(
+    doc,
+    'Resumen General Colectivo & Evolución del Torneo',
+    filterDescription || `Total Partidos Computados: ${games.length} | Récord: ${teamTotalsGlobal.wins}V - ${teamTotalsGlobal.losses}D (${teamTotalsGlobal.winPct}%)`,
+    1,
+    totalPages,
+    crestImg
+  );
+
+  // Fila de 5 Tarjetas Superiores
+  const cardY = 27;
+  const cardH = 22;
+  const cardW = 53;
+  const gap = 3;
+
+  // 1. Récord y Balance
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(10, cardY, cardW, cardH, 2, 2, 'FD');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('RÉCORD & RESULTADOS', 13, cardY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(0, 32, 91);
+  doc.text(`${teamTotalsGlobal.wins}V - ${teamTotalsGlobal.losses}D`, 13, cardY + 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(5, 150, 105);
+  doc.text(`Efectividad: ${teamTotalsGlobal.winPct}% · ${games.length} PJ`, 13, cardY + 18);
+
+  // 2. Producción Ofensiva
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(10 + cardW + gap, cardY, cardW, cardH, 2, 2, 'FD');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('OFENSIVA (PUNTOS Y PPP)', 13 + cardW + gap, cardY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(0, 32, 91);
+  doc.text(`${teamTotalsGlobal.avgPoints} PTS/PJ`, 13 + cardW + gap, cardY + 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Total: ${teamTotalsGlobal.totalPoints} pts · ${teamTotalsGlobal.pointsPerPossession} PPP`, 13 + cardW + gap, cardY + 18);
+
+  // 3. Eficiencia Ofensiva (ORtg)
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(10 + (cardW + gap) * 2, cardY, cardW, cardH, 2, 2, 'FD');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('OFFENSIVE RATING (ORtg)', 13 + (cardW + gap) * 2, cardY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(5, 150, 105);
+  doc.text(String(teamTotalsGlobal.offensiveRating), 13 + (cardW + gap) * 2, cardY + 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Puntos cada 100 posesiones`, 13 + (cardW + gap) * 2, cardY + 18);
+
+  // 4. Eficiencia Defensiva (DRtg)
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(10 + (cardW + gap) * 3, cardY, cardW, cardH, 2, 2, 'FD');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('DEFENSIVE RATING (DRtg)', 13 + (cardW + gap) * 3, cardY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(220, 38, 38);
+  doc.text(String(teamTotalsGlobal.defensiveRating), 13 + (cardW + gap) * 3, cardY + 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Rival: ${teamTotalsGlobal.avgOpponentPoints} PTS/PJ`, 13 + (cardW + gap) * 3, cardY + 18);
+
+  // 5. Net Rating & Pace
+  doc.setFillColor(248, 250, 252);
+  doc.roundedRect(10 + (cardW + gap) * 4, cardY, cardW, cardH, 2, 2, 'FD');
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('NET RATING & RITMO', 13 + (cardW + gap) * 4, cardY + 5);
+  doc.setFontSize(13);
+  doc.setTextColor(teamTotalsGlobal.netRating >= 0 ? 5 : 220, teamTotalsGlobal.netRating >= 0 ? 150 : 38, 38);
+  doc.text(`${teamTotalsGlobal.netRating > 0 ? '+' : ''}${teamTotalsGlobal.netRating}`, 13 + (cardW + gap) * 4, cardY + 12);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`Pace: ${teamTotalsGlobal.pace} pos | Dif: ${teamTotalsGlobal.pointDiff > 0 ? '+' : ''}${teamTotalsGlobal.pointDiff}`, 13 + (cardW + gap) * 4, cardY + 18);
+
+  // Cuadro de 4 Factores Colectivos
+  const fourFactY = 53;
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(203, 213, 225);
+  doc.roundedRect(10, fourFactY, 277, 26, 2, 2, 'FD');
+
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text('LOS 4 FACTORES DE LA VICTORIA DE DEAN OLIVER (TOTAL TORNEO / ACUMULADO)', 14, fourFactY + 5.5);
+
+  const ffCols = [14, 82, 150, 218];
+  // Factor 1
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text('1. Tiro Efectivo (eFG%)', ffCols[0], fourFactY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`SOMISA: ${teamTotalsGlobal.eFGPct}% | Rival: ${teamTotalsGlobal.oppEFGPct}%`, ffCols[0], fourFactY + 16);
+  doc.text(`TS%: ${teamTotalsGlobal.trueShootingPct}% · Ponderación: 40%`, ffCols[0], fourFactY + 21);
+
+  // Factor 2
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text('2. Cuidado Balón (ToV%)', ffCols[1], fourFactY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`SOMISA: ${teamTotalsGlobal.tovPct}% | Rival: ${teamTotalsGlobal.oppTovPct}%`, ffCols[1], fourFactY + 16);
+  doc.text(`AST/PER: ${teamTotalsGlobal.assistToTurnoverRatio} · Ponderación: 25%`, ffCols[1], fourFactY + 21);
+
+  // Factor 3
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text('3. Rebote Ofensivo (ORB%)', ffCols[2], fourFactY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`SOMISA Of: ${teamTotalsGlobal.orbPct}% | Rival Def: ${teamTotalsGlobal.drbPct}%`, ffCols[2], fourFactY + 16);
+  doc.text(`Reb Total: ${teamTotalsGlobal.rt} (${teamTotalsGlobal.avgRebounds}/PJ) · 20%`, ffCols[2], fourFactY + 21);
+
+  // Factor 4
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(15, 23, 42);
+  doc.text('4. Frecuencia TL (FTr)', ffCols[3], fourFactY + 11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  doc.text(`SOMISA: ${teamTotalsGlobal.ftRate}% | Rival: ${teamTotalsGlobal.oppFtRate}%`, ffCols[3], fourFactY + 16);
+  doc.text(`TL%: ${teamTotalsGlobal.tlPct}% · Ponderación: 15%`, ffCols[3], fourFactY + 21);
+
+  // Tabla de Evolución Partido a Partido
+  const evoY = 84;
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 32, 91);
+  doc.text('TABLA DE EVOLUCIÓN Y RENDIMIENTO PARTIDO A PARTIDO', 10, evoY);
+
+  const evoHeaders = ['#', 'Fecha', 'Rival', 'Condición', 'Resultado', 'SOMISA', 'Rival', 'Dif', 'Pace', 'ORtg', 'DRtg', 'NetRtg', 'eFG%', 'ToV%', 'TS%'];
+  const evoCols = [10, 18, 42, 85, 108, 128, 142, 156, 170, 186, 202, 218, 236, 254, 272];
+
+  doc.setFillColor(0, 32, 91);
+  doc.rect(10, evoY + 2, 277, 6, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'bold');
+
+  evoHeaders.forEach((h, i) => {
+    doc.text(h, evoCols[i] + (i <= 2 ? 0 : 4), evoY + 6.2, { align: i <= 2 ? 'left' : 'center' });
+  });
+
+  let curEvoY = evoY + 12;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+
+  games.forEach((g, idx) => {
+    const rTot = calculateTeamRowTotals(g.rows);
+    const f = calculateFourFactors(rTot, g.opponentStats);
+    const diff = g.scoreMyTeam - g.scoreOpponent;
+
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(10, curEvoY - 4, 277, 5.5, 'F');
+    }
+
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(idx + 1), evoCols[0] + 2, curEvoY, { align: 'left' });
+    doc.text(g.date, evoCols[1], curEvoY, { align: 'left' });
+    doc.text(g.opponentName.slice(0, 22), evoCols[2], curEvoY, { align: 'left' });
+    doc.text((g.homeAway || 'home') === 'home' ? 'Local' : 'Visitante', evoCols[3] + 4, curEvoY, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(diff > 0 ? 5 : 220, diff > 0 ? 150 : 38, 38);
+    doc.text(diff > 0 ? 'Victoria' : 'Derrota', evoCols[4] + 4, curEvoY, { align: 'center' });
+
+    doc.setTextColor(0, 32, 91);
+    doc.text(String(g.scoreMyTeam), evoCols[5] + 4, curEvoY, { align: 'center' });
+    doc.setTextColor(71, 85, 105);
+    doc.text(String(g.scoreOpponent), evoCols[6] + 4, curEvoY, { align: 'center' });
+
+    doc.setTextColor(diff > 0 ? 5 : 220, diff > 0 ? 150 : 38, 38);
+    doc.text(diff > 0 ? `+${diff}` : String(diff), evoCols[7] + 4, curEvoY, { align: 'center' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(f.pace), evoCols[8] + 4, curEvoY, { align: 'center' });
+    doc.text(String(f.offensiveRating), evoCols[9] + 4, curEvoY, { align: 'center' });
+    doc.text(String(f.defensiveRating), evoCols[10] + 4, curEvoY, { align: 'center' });
+    doc.text(`${f.netRating > 0 ? '+' : ''}${f.netRating}`, evoCols[11] + 4, curEvoY, { align: 'center' });
+    doc.text(`${f.eFGPct}%`, evoCols[12] + 4, curEvoY, { align: 'center' });
+    doc.text(`${f.tovPct}%`, evoCols[13] + 4, curEvoY, { align: 'center' });
+    doc.text(`${rTot.tsPct}%`, evoCols[14] + 4, curEvoY, { align: 'center' });
+
+    curEvoY += 6;
+  });
+
+  drawFooter(doc);
+
+  // =========================================================================
+  // PÁGINA 2: PLANTILLA COMPLETA ACUMULADA (TOTALES Y PROMEDIOS)
+  // =========================================================================
+  doc.addPage('a4', 'landscape');
+  drawHeader(
+    doc,
+    'Plantilla Oficial · Totales & Promedios Acumulados de Temporada',
+    `Club SOMISA San Nicolás | Muestra: ${games.length} Partido(s) Computados`,
+    2,
+    totalPages,
+    crestImg
+  );
+
+  const plStartY = 30;
+  const plCols = [10, 18, 56, 74, 86, 102, 118, 134, 150, 166, 182, 198, 214, 230, 246, 262, 276];
+  const plHeaders = ['#', 'Jugador', 'Posición', 'PJ', 'PTS Tot', 'PTS/PJ', '2P %', '3P %', 'TL %', 'REB Tot', 'REB/PJ', 'AST Tot', 'AST/PJ', 'REC Tot', 'PER Tot', 'VAL Tot', 'VAL/PJ'];
+
+  doc.setFillColor(0, 32, 91);
+  doc.rect(8, plStartY - 5, 281, 7, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+
+  plHeaders.forEach((h, i) => {
+    doc.text(h, plCols[i] + (i <= 2 ? 0 : 4), plStartY, { align: i <= 2 ? 'left' : 'center' });
+  });
+
+  let curPlY = plStartY + 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7.5);
+
+  aggPlayers.forEach((p, idx) => {
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(8, curPlY - 4.5, 281, 6, 'F');
+    }
+
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(p.number ?? '-'), plCols[0] + 2, curPlY, { align: 'left' });
+    doc.text(p.name, plCols[1], curPlY, { align: 'left' });
+    doc.text(p.position || '-', plCols[2], curPlY, { align: 'left' });
+    doc.text(String(p.gamesPlayed), plCols[3] + 4, curPlY, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(p.totalPoints), plCols[4] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.avgPoints), plCols[5] + 4, curPlY, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+
+    doc.text(`${p.pct2p}%`, plCols[6] + 4, curPlY, { align: 'center' });
+    doc.text(`${p.pct3p}%`, plCols[7] + 4, curPlY, { align: 'center' });
+    doc.text(`${p.pctFt}%`, plCols[8] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.totalRebounds), plCols[9] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.avgRebounds), plCols[10] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.totalAssists), plCols[11] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.avgAssists), plCols[12] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.rec), plCols[13] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.per), plCols[14] + 4, curPlY, { align: 'center' });
+
+    doc.setFont('helvetica', 'bold');
+    doc.text(String(p.totalValuation), plCols[15] + 4, curPlY, { align: 'center' });
+    doc.text(String(p.avgValuation), plCols[16] + 4, curPlY, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+
+    curPlY += 6;
+  });
+
+  // Fila de Totales de Equipo
+  doc.setFillColor(0, 32, 91);
+  doc.rect(8, curPlY - 4.5, 281, 7, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TOTALES & PROMEDIOS SOMISA', plCols[1], curPlY, { align: 'left' });
+  doc.text(String(games.length), plCols[3] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.totalPoints), plCols[4] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.avgPoints), plCols[5] + 4, curPlY, { align: 'center' });
+  doc.text(`${teamTotalsGlobal.tiPct}%`, plCols[6] + 4, curPlY, { align: 'center' });
+  doc.text(`${teamTotalsGlobal.pct3p}%`, plCols[7] + 4, curPlY, { align: 'center' });
+  doc.text(`${teamTotalsGlobal.tlPct}%`, plCols[8] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.rt), plCols[9] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.avgRebounds), plCols[10] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.as), plCols[11] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.avgAssists), plCols[12] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.rec), plCols[13] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.per), plCols[14] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.totalValuation), plCols[15] + 4, curPlY, { align: 'center' });
+  doc.text(String(teamTotalsGlobal.avgValuation), plCols[16] + 4, curPlY, { align: 'center' });
+
+  drawFooter(doc);
+
+  // =========================================================================
+  // PÁGINAS 3...N: UNA PÁGINA DEDICADA POR CADA PARTIDO INDIVIDUAL
+  // =========================================================================
+  games.forEach((game, index) => {
+    doc.addPage('a4', 'landscape');
+    const teamTotals = calculateTeamRowTotals(game.rows);
+    const diff = game.scoreMyTeam - game.scoreOpponent;
+
+    drawHeader(
+      doc,
+      `Partido ${index + 1}: ${game.myTeamName} vs ${game.opponentName}`,
+      `Fecha: ${game.date} | Condición: ${(game.homeAway || 'home') === 'home' ? 'Local' : 'Visitante'} | Torneo: ${game.competition} | Temporada: ${game.season}`,
+      3 + index,
+      totalPages,
+      crestImg
+    );
+
+    // Score Badge
+    doc.setFillColor(238, 243, 250);
+    doc.roundedRect(210, 5, 55, 14, 2, 2, 'F');
+    doc.setTextColor(0, 32, 91);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`${game.scoreMyTeam} - ${game.scoreOpponent}`, 237.5, 14, { align: 'center' });
+
+    // Box Score Table
+    const gStartY = 30;
+    const gColX = [10, 18, 55, 70, 85, 100, 115, 130, 145, 160, 175, 190, 205, 220, 235, 250, 265, 280];
+    const gHeaders = ['#', 'Jugador', 'MIN', '2PC/I', '2P%', '3PC/I', '3P%', 'TLC/I', 'TL%', 'REB', 'AST', 'REC', 'PER', 'TAP', 'FC/FR', 'PTS', 'VAL'];
+
+    doc.setFillColor(241, 245, 249);
+    doc.rect(8, gStartY - 5, 281, 7, 'F');
+    doc.setTextColor(15, 23, 42);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+
+    gHeaders.forEach((h, i) => {
+      doc.text(h, gColX[i] + (i === 1 ? 0 : 4), gStartY, { align: i === 1 ? 'left' : 'center' });
+    });
+
+    let gCurY = gStartY + 6;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+
+    game.rows.forEach((r, idx) => {
+      if (idx % 2 === 1) {
+        doc.setFillColor(248, 250, 252);
+        doc.rect(8, gCurY - 4.5, 281, 6, 'F');
+      }
+
+      doc.setTextColor(30, 41, 59);
+      doc.text(String(r.playerNumber ?? '-'), gColX[0] + 4, gCurY, { align: 'center' });
+      doc.text(r.playerName, gColX[1], gCurY, { align: 'left' });
+      doc.text(r.min, gColX[2] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.tc}/${r.ti}`, gColX[3] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.tiPct}%`, gColX[4] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.c3p}/${r.i3p}`, gColX[5] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.pct3p}%`, gColX[6] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.tlc}/${r.tli}`, gColX[7] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.tlPct}%`, gColX[8] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.rt), gColX[9] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.as), gColX[10] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.rec), gColX[11] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.per), gColX[12] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.tap), gColX[13] + 4, gCurY, { align: 'center' });
+      doc.text(`${r.fpc}/${r.fpr}`, gColX[14] + 4, gCurY, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(r.pt), gColX[15] + 4, gCurY, { align: 'center' });
+      doc.text(String(r.ptsTot), gColX[16] + 4, gCurY, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+
+      gCurY += 6;
+    });
+
+    // Totales SOMISA
+    doc.setFillColor(0, 32, 91);
+    doc.rect(8, gCurY - 4.5, 281, 7, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('TOTALES SOMISA', gColX[1], gCurY, { align: 'left' });
+    doc.text(teamTotals.min, gColX[2] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.tc}/${teamTotals.ti}`, gColX[3] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.tiPct}%`, gColX[4] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.c3p}/${teamTotals.i3p}`, gColX[5] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.pct3p}%`, gColX[6] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.tlc}/${teamTotals.tli}`, gColX[7] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.tlPct}%`, gColX[8] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.rt), gColX[9] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.as), gColX[10] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.rec), gColX[11] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.per), gColX[12] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.tap), gColX[13] + 4, gCurY, { align: 'center' });
+    doc.text(`${teamTotals.fpc}/${teamTotals.fpr}`, gColX[14] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.pt), gColX[15] + 4, gCurY, { align: 'center' });
+    doc.text(String(teamTotals.ptsTot), gColX[16] + 4, gCurY, { align: 'center' });
+
+    // Totales Rival si están disponibles
+    if (game.opponentStats) {
+      gCurY += 6.5;
+      const opp = game.opponentStats;
+      doc.setFillColor(241, 245, 249);
+      doc.rect(8, gCurY - 4.5, 281, 6, 'F');
+      doc.setTextColor(71, 85, 105);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`TOTALES ${game.opponentName}`, gColX[1], gCurY, { align: 'left' });
+      doc.setFont('helvetica', 'normal');
+      doc.text(`${opp.tc}/${opp.ti}`, gColX[3] + 4, gCurY, { align: 'center' });
+      doc.text(`${opp.ti > 0 ? ((opp.tc / opp.ti) * 100).toFixed(0) : 0}%`, gColX[4] + 4, gCurY, { align: 'center' });
+      doc.text(`${opp.c3p}/${opp.i3p}`, gColX[5] + 4, gCurY, { align: 'center' });
+      doc.text(`${opp.i3p > 0 ? ((opp.c3p / opp.i3p) * 100).toFixed(0) : 0}%`, gColX[6] + 4, gCurY, { align: 'center' });
+      doc.text(`${opp.tlc}/${opp.tli}`, gColX[7] + 4, gCurY, { align: 'center' });
+      doc.text(`${opp.tli > 0 ? ((opp.tlc / opp.tli) * 100).toFixed(0) : 0}%`, gColX[8] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.rd + opp.ro), gColX[9] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.as), gColX[10] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.rec), gColX[11] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.per), gColX[12] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.tap), gColX[13] + 4, gCurY, { align: 'center' });
+      doc.text(String(opp.fpc), gColX[14] + 4, gCurY, { align: 'center' });
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(opp.pts), gColX[15] + 4, gCurY, { align: 'center' });
+    }
+
+    // Resumen Táctico del Partido
+    const singleFactors = calculateFourFactors(teamTotals, game.opponentStats);
+    const effBoxY = Math.min(gCurY + 5.5, 188);
+    doc.setFillColor(248, 250, 252);
+    doc.setDrawColor(203, 213, 225);
+    doc.roundedRect(8, effBoxY, 281, 11, 1.5, 1.5, 'FD');
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 32, 91);
+    doc.text(
+      `EFICIENCIA AVANZADA:   ORtg: ${singleFactors.offensiveRating}   |   DRtg: ${singleFactors.defensiveRating}   |   Net Rating: ${singleFactors.netRating > 0 ? '+' : ''}${singleFactors.netRating}   |   Pace: ${singleFactors.pace} pos   |   TS%: ${teamTotals.tsPct}%   |   eFG%: ${singleFactors.eFGPct}% (Rival: ${singleFactors.oppEFGPct}%)   |   ToV%: ${singleFactors.tovPct}%   |   ORB%: ${singleFactors.orbPct}%   |   FTr: ${singleFactors.ftRate}%`,
+      12,
+      effBoxY + 6.8
+    );
+
+    drawFooter(doc);
+  });
+
+  const dateStr = new Date().toISOString().slice(0, 10);
+  doc.save(`SOMISA_Reporte_General_Y_Partidos_${games.length}_Partidos_${dateStr}.pdf`);
+}
+
+

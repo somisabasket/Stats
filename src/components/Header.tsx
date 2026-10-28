@@ -10,6 +10,7 @@ interface HeaderProps {
   darkMode: boolean;
   onToggleDarkMode: () => void;
   onOpenExportModal: () => void;
+  onOpenAllMatchesReportModal?: () => void;
   onOpenCreateMatchModal: () => void;
   onOpenRosterModal?: () => void;
   onOpenGitHubModal?: () => void;
@@ -23,6 +24,7 @@ export const Header: React.FC<HeaderProps> = ({
   darkMode,
   onToggleDarkMode,
   onOpenExportModal,
+  onOpenAllMatchesReportModal,
   onOpenCreateMatchModal,
   onOpenRosterModal,
   onOpenGitHubModal,
@@ -126,6 +128,18 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Github className="w-3.5 h-3.5 text-slate-700 dark:text-slate-300" />
               <span>Sincronizar GitHub</span>
+            </button>
+          )}
+
+          {/* Reporte Todos los Partidos + Resumen General */}
+          {onOpenAllMatchesReportModal && (
+            <button
+              onClick={onOpenAllMatchesReportModal}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-white bg-indigo-700 hover:bg-indigo-800 dark:bg-indigo-600 dark:hover:bg-indigo-500 rounded-lg shadow-sm transition-all whitespace-nowrap active:scale-[0.98]"
+              title="Ver y exportar estadísticas de todos los partidos separados y el resumen general acumulado (.xlsx / .pdf)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Reporte Partidos & General</span>
             </button>
           )}
 

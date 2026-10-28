@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, Plus, Trash2, Calendar, Shield, ArrowRight, Home, Plane, Filter, CheckCircle2 } from 'lucide-react';
+import { Trophy, Plus, Trash2, Calendar, Shield, ArrowRight, Home, Plane, Filter, CheckCircle2, FileSpreadsheet } from 'lucide-react';
 import { Game } from '../types/basketball';
 import { calculateTeamRowTotals } from '../utils/calculations';
 import { formatToInputDate } from '../utils/storage';
@@ -13,6 +13,7 @@ interface SeasonManagerProps {
   onDeleteGame: (gameId: string) => void;
   onImportBackup?: (games: Game[]) => void;
   onUpdateGame?: (gameId: string, updated: Partial<Game>) => void;
+  onOpenAllMatchesReportModal?: () => void;
 }
 
 export const SeasonManager: React.FC<SeasonManagerProps> = ({
@@ -21,6 +22,7 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
   onSelectGame,
   onDeleteGame,
   onUpdateGame,
+  onOpenAllMatchesReportModal,
 }) => {
   const [filterSeason, setFilterSeason] = useState('all');
   const [filterVenue, setFilterVenue] = useState<'all' | 'home' | 'away'>('all');
@@ -108,6 +110,18 @@ export const SeasonManager: React.FC<SeasonManagerProps> = ({
               ))}
             </select>
           </div>
+
+          {onOpenAllMatchesReportModal && (
+            <button
+              type="button"
+              onClick={onOpenAllMatchesReportModal}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-400 text-slate-950 hover:bg-amber-300 transition-all cursor-pointer shadow-xs active:scale-95 whitespace-nowrap"
+              title="Abrir reporte integral: Estadísticas de todos los partidos separados y resumen general acumulado"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5" />
+              <span>Reporte Completo (Todos los Partidos)</span>
+            </button>
+          )}
         </div>
       </div>
 

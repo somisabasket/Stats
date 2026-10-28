@@ -26,6 +26,7 @@ import { CreateMatchModal } from './components/CreateMatchModal';
 import { RosterManagerModal } from './components/RosterManagerModal';
 import { GitHubExportModal } from './components/GitHubExportModal';
 import { ImportExcelModal } from './components/ImportExcelModal';
+import { AllMatchesReportModal } from './components/AllMatchesReportModal';
 
 export default function App() {
   const [games, setGames] = useState<Game[]>(() => loadSavedGames());
@@ -37,6 +38,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('grid');
   const [darkMode, setDarkMode] = useState<boolean>(() => getDarkModePreference());
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [isAllMatchesReportModalOpen, setIsAllMatchesReportModalOpen] = useState<boolean>(false);
   const [isCreateMatchModalOpen, setIsCreateMatchModalOpen] = useState<boolean>(false);
   const [isRosterModalOpen, setIsRosterModalOpen] = useState<boolean>(false);
   const [isGitHubModalOpen, setIsGitHubModalOpen] = useState<boolean>(false);
@@ -339,6 +341,7 @@ export default function App() {
         darkMode={darkMode}
         onToggleDarkMode={() => setDarkMode(!darkMode)}
         onOpenExportModal={() => setIsExportModalOpen(true)}
+        onOpenAllMatchesReportModal={() => setIsAllMatchesReportModalOpen(true)}
         onOpenCreateMatchModal={() => setIsCreateMatchModalOpen(true)}
         onOpenRosterModal={() => setIsRosterModalOpen(true)}
         onOpenGitHubModal={() => setIsGitHubModalOpen(true)}
@@ -475,6 +478,7 @@ export default function App() {
               onDeleteGame={handleDeleteGame}
               onImportBackup={handleImportBackup}
               onUpdateGame={handleUpdateGameById}
+              onOpenAllMatchesReportModal={() => setIsAllMatchesReportModalOpen(true)}
             />
           </div>
         )}
@@ -545,6 +549,13 @@ export default function App() {
         onClose={() => setIsExportModalOpen(false)}
         game={currentGame}
         allGames={games}
+      />
+
+      {/* Modal: Reporte Integral de Todos los Partidos Separados + Resumen General */}
+      <AllMatchesReportModal
+        isOpen={isAllMatchesReportModalOpen}
+        onClose={() => setIsAllMatchesReportModalOpen(false)}
+        games={games}
       />
 
       {/* Modal: Importar Estadísticas desde Excel Oficial (CABB / FBB / FIBA) */}
