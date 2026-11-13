@@ -1,7 +1,7 @@
 {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-13T18:10:54.306Z",
+  "exportDate": "2026-11-13T18:14:42.838Z",
   "totalGames": 9,
   "roster": [
     {
@@ -115,6 +115,33 @@
       "position": "Pívot",
       "isCaptain": false,
       "active": true
+    }
+  ],
+  "staff": [
+    {
+      "id": "staff_dt",
+      "role": "Director Técnico",
+      "name": "Diego Alba"
+    },
+    {
+      "id": "staff_at1",
+      "role": "Asistente Técnico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_pf",
+      "role": "Preparador Físico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_kin",
+      "role": "Kinesiólogo / Médico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_ut",
+      "role": "Utilero / Jefe de Equipo",
+      "name": "A definir"
     }
   ],
   "games": [
