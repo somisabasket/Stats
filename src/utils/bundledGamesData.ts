@@ -11,7 +11,7 @@ export const BUNDLED_SOMISA_DATA: {
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-13T18:57:46.760Z",
+  "exportDate": "2026-11-13T18:59:04.389Z",
   "totalGames": 9,
   "roster": [
     {
@@ -129,29 +129,24 @@ export const BUNDLED_SOMISA_DATA: {
   ],
   "staff": [
     {
-      "id": "staff_dt",
-      "role": "Director Técnico",
-      "name": "Diego Alba"
+      "id": "staff_at",
+      "role": "Asistente Técnico",
+      "name": "Lucas Nuñes"
     },
     {
-      "id": "staff_at1",
-      "role": "Asistente Técnico",
-      "name": "A definir"
+      "id": "staff_ut",
+      "role": "Utilero",
+      "name": "Turro Magallanes"
     },
     {
       "id": "staff_pf",
       "role": "Preparador Físico",
-      "name": "A definir"
+      "name": "Rodolfo Perazo"
     },
     {
-      "id": "staff_kin",
-      "role": "Kinesiólogo / Médico",
-      "name": "A definir"
-    },
-    {
-      "id": "staff_ut",
-      "role": "Utilero / Jefe de Equipo",
-      "name": "A definir"
+      "id": "staff_gm",
+      "role": "GM",
+      "name": "Diego Perez"
     }
   ],
   "games": [
