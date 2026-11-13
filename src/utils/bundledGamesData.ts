@@ -11,7 +11,7 @@ export const BUNDLED_SOMISA_DATA: {
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-13T19:00:17.286Z",
+  "exportDate": "2026-11-13T19:04:03.673Z",
   "totalGames": 9,
   "roster": [
     {
@@ -128,6 +128,11 @@ export const BUNDLED_SOMISA_DATA: {
     }
   ],
   "staff": [
+    {
+      "id": "staff_dt",
+      "role": "Director Técnico",
+      "name": "Diego Alba"
+    },
     {
       "id": "staff_at",
       "role": "Asistente Técnico",
