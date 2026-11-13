@@ -1,4 +1,4 @@
-import { Game, PlayerProfile } from "../types/basketball";
+import { Game, PlayerProfile, StaffMember } from "../types/basketball";
 
 export const BUNDLED_SOMISA_DATA: {
   appName?: string;
@@ -6,11 +6,12 @@ export const BUNDLED_SOMISA_DATA: {
   exportDate?: string;
   totalGames?: number;
   roster: PlayerProfile[];
+  staff?: StaffMember[];
   games: Game[];
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-13T18:10:54.306Z",
+  "exportDate": "2026-11-13T18:14:42.821Z",
   "totalGames": 9,
   "roster": [
     {
@@ -124,6 +125,33 @@ export const BUNDLED_SOMISA_DATA: {
       "position": "Pívot",
       "isCaptain": false,
       "active": true
+    }
+  ],
+  "staff": [
+    {
+      "id": "staff_dt",
+      "role": "Director Técnico",
+      "name": "Diego Alba"
+    },
+    {
+      "id": "staff_at1",
+      "role": "Asistente Técnico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_pf",
+      "role": "Preparador Físico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_kin",
+      "role": "Kinesiólogo / Médico",
+      "name": "A definir"
+    },
+    {
+      "id": "staff_ut",
+      "role": "Utilero / Jefe de Equipo",
+      "name": "A definir"
     }
   ],
   "games": [
