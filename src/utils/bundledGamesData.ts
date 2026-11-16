@@ -1,4 +1,4 @@
-import { Game, PlayerProfile, StaffMember } from "../types/basketball";
+import { Game, PlayerProfile, StaffMember, ScoutingMatch } from "../types/basketball";
 
 export const BUNDLED_SOMISA_DATA: {
   appName?: string;
@@ -7,11 +7,12 @@ export const BUNDLED_SOMISA_DATA: {
   totalGames?: number;
   roster: PlayerProfile[];
   staff?: StaffMember[];
+  scoutingMatches?: ScoutingMatch[];
   games: Game[];
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-16T11:13:41.238Z",
+  "exportDate": "2026-11-16T11:15:46.295Z",
   "totalGames": 9,
   "roster": [
     {
@@ -154,6 +155,7 @@ export const BUNDLED_SOMISA_DATA: {
       "name": "Diego Perez"
     }
   ],
+  "scoutingMatches": [],
   "games": [
     {
       "id": "match_excel_1794312590656",
