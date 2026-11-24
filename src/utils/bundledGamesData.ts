@@ -12,7 +12,7 @@ export const BUNDLED_SOMISA_DATA: {
 } = {
   "appName": "Club SOMISA Básquetbol",
   "version": "4.0.0",
-  "exportDate": "2026-11-24T13:14:15.202Z",
+  "exportDate": "2026-11-24T14:14:18.460Z",
   "totalGames": 11,
   "roster": [
     {
